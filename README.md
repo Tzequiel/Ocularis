@@ -6,11 +6,14 @@ Ocularis es una aplicación móvil orientada a centralizar, organizar y dar traz
 ## Identidad Visual
 * **Logotipo:** Ubicado en `docs/diseno/logo.png`
 * **Paleta de Colores:** 
-  * Principal: #247B7B
-  * Secundario: #44A1A0
-  * Fondo: #FFFFFA
-  * Texto: #0D5C63
-  * Adicional: #78CDD7
+
+| Color | Código | Vista Previa |
+| :--- | :--- | :--- |
+| **Fondo** | `#FFFFFA` | <img src="https://placehold.co/50x50/FFFFFA/FFFFFA.png" width="20" height="20"> |
+| **Texto** | `#0D5C63` | <img src="https://placehold.co/50x50/0D5C63/0D5C63.png" width="20" height="20"> |
+| **Secundario** | `#44A1A0` | <img src="https://placehold.co/50x50/44A1A0/44A1A0.png" width="20" height="20"> |
+| **Adicional** | `#78CDD7` | <img src="https://placehold.co/50x50/78CDD7/78CDD7.png" width="20" height="20"> |
+| **Principal** | `#247B7B` | <img src="https://placehold.co/50x50/247B7B/247B7B.png" width="20" height="20"> |
 
 ## Flujo de Usuario
 ```mermaid
