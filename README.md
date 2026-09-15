@@ -4,7 +4,10 @@
 Ocularis es una aplicación móvil orientada a centralizar, organizar y dar trazabilidad al acceso y consulta de exámenes oftalmológicos en un contexto académico con datos simulados.
 
 ## Identidad Visual
-* **Logotipo:** Ubicado en `docs/diseno/logo.png`
+* **Logotipo:** 
+<div align="center">
+  <img src="docs/diseno/logo.png" alt="Logo Ocularis" width="250">
+</div>
 * **Paleta de Colores:** 
 
 | Color | Código | Vista Previa |
