@@ -45,3 +45,25 @@ stateDiagram-v2
     Historial --> DetalleExamen: Seleccionar examen
     
     DetalleExamen --> Inicio: Volver al menú
+```
+
+## Pantallas Principales
+Los diseños de las interfaces de Ocularis se encuentran ubicados en el repositorio dentro del directorio `docs/diseno/interfaces/`. Las pantallas generadas para este MVP son:
+* Login
+* Inicio / Búsqueda
+* Registro de Atención
+* Historial de Exámenes
+* Registro de Examen (Subir Archivos)
+* Resumen / Detalle
+
+## Tecnologías Utilizadas
+* **Google Stitch:** Generación y prototipado de UI con IA.
+* **coolors.co:** Definición de la paleta de colores.
+* **planttext.com:** Generación del diagrama de flujo UML.
+* **Material Design 3 (m3.material.io):** Sistema de diseño y componentes base.
+
+## Integrantes
+**Equipo Bizcochitos**
+* **Richard Hernández:** Líder
+* **Cesar Molina:** Frontend
+* **Matias Carrasco:** Backend
