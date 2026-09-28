@@ -66,4 +66,3 @@ Los diseños de las interfaces de Ocularis se encuentran ubicados en el reposito
 **Equipo Bizcochitos**
 * **Richard Hernández:** Líder
 * **Cesar Molina:** Frontend
-* **Matias Carrasco:** Backend
