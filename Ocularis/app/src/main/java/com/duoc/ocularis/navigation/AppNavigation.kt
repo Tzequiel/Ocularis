@@ -8,7 +8,7 @@ import androidx.navigation.compose.*
 import androidx.navigation.compose.rememberNavController
 import com.duoc.ocularis.ui.screens.FuncionScreen
 import com.duoc.ocularis.ui.screens.HomeScreen
-import com.duoc.ocularis.ui.screens.LoginSreen
+import com.duoc.ocularis.ui.screens.LoginScreen
 import com.duoc.ocularis.viewmodel.AppViewModel
 
 
@@ -21,7 +21,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()){
     NavHost(navController = navController, startDestination = "Login"){
         //Ruta 1
         composable("login"){
-            LoginSreen(onLogin = {navController.navigate("home")})
+            LoginScreen(onLogin = {navController.navigate("home")})
         }
 
         //Ruta 2
