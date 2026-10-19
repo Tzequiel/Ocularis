@@ -62,11 +62,10 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    // Aquí cambiamos el Icon() por Image()
                     androidx.compose.foundation.Image(
                         painter = androidx.compose.ui.res.painterResource(id = com.duoc.ocularis.R.drawable.logo),
                         contentDescription = "Logo Ocularis",
-                        modifier = Modifier.size(75.dp) // Puedes subir o bajar este número para que encaje perfecto
+                        modifier = Modifier.size(75.dp)
                     )
                 }
             }
@@ -267,11 +266,22 @@ fun LoginScreen(
             // Botón Principal: Ingresar al Sistema
             Button(
                 onClick = {
-                    if (username.isBlank() || password.isBlank()) {
+                    val user = username.trim()
+                    val pass = password.trim()
+
+                    if (user.isBlank() || pass.isBlank()) {
                         errorMessage = "Por favor ingrese sus credenciales."
+                    } else if (pass.length < 8) {
+                        errorMessage = "La contraseña debe tener al menos 8 caracteres."
+                    } else if (!pass.any { it.isUpperCase() }) {
+                        errorMessage = "La contraseña debe contener al menos una letra mayúscula."
+                    } else if (!pass.any { it.isDigit() }) {
+                        errorMessage = "La contraseña debe contener al menos un número."
+                    } else if (!pass.any { !it.isLetterOrDigit() }) {
+                        errorMessage = "La contraseña debe contener al menos un carácter especial."
                     } else {
-                        // Actualiza el ViewModel y navega
-                        vm?.let { it.usuario = username }
+                        errorMessage = ""
+                        vm?.let { it.usuario = user }
                         onLogin()
                     }
                 },
