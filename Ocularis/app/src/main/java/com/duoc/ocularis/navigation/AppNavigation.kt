@@ -1,49 +1,145 @@
 package com.duoc.ocularis.navigation
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.duoc.ocularis.ui.screens.AtencionScreen // <-- IMPORTANDO LA PANTALLA CORRECTA
+import com.duoc.ocularis.ui.screens.AtencionScreen
 import com.duoc.ocularis.ui.screens.HomeScreen
 import com.duoc.ocularis.ui.screens.LoginScreen
+import com.duoc.ocularis.ui.screens.HistorialScreen
 import com.duoc.ocularis.viewmodel.AppViewModel
+
+private val DarkTeal = Color(0xFF147376)
+private val LightCyan = Color(0xFFD9F8F7)
 
 @Composable
 fun AppNavigation(vm: AppViewModel = viewModel()) {
-    // Controlar los cambios entre pantallas
     val navController = rememberNavController()
 
-    // NavHost contiene las rutas de la app
-    NavHost(navController = navController, startDestination = "login") {
+    // Observamos la ruta actual para saber qué botón pintar y si mostrar la barra
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
-        // Ruta 1: Login
-        composable(route = "login") {
-            LoginScreen(
-                onLogin = { navController.navigate(route = "home") },
-                vm = vm
-            )
-        }
+    // Rutas donde SÍ queremos que se vea la barra de navegación
+    val rutasConBarraInferior = listOf("home", "historial", "perfil")
 
-        // Ruta 2: Inicio / Pacientes
-        composable(route = "home") {
-            HomeScreen(
-                onNavigateToNuevaAtencion = {
-                    navController.navigate(route = "nueva_atencion")
-                },
-                onNavigateToDetalle = { idPaciente ->
-                    // Por ahora no hace nada hasta que hagamos la pantalla de Detalle
-                }
-            )
+    Scaffold(
+        bottomBar = {
+            if (currentRoute in rutasConBarraInferior) {
+                AppBottomNavigation(
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        navController.navigate(route) {
+                            // Evita crear múltiples copias de la misma pantalla
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
         }
+    ) { innerPadding ->
+        // El NavHost ahora recibe el padding del Scaffold principal
+        NavHost(
+            navController = navController,
+            startDestination = "login",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            // Ruta 1: Login
+            composable(route = "login") {
+                LoginScreen(
+                    onLogin = { navController.navigate(route = "home") },
+                    vm = vm
+                )
+            }
 
-        // Ruta 3: Pantalla de Nueva Atención
-        composable(route = "nueva_atencion") {
-            AtencionScreen(
-                onNavigateBack = { navController.popBackStack() }, // Para el botón Cancelar o flecha de atrás
-                onGuardarAtencion = { navController.popBackStack() } // Para el botón Guardar
-            )
+            // Ruta 2: Inicio / Pacientes
+            composable(route = "home") {
+                HomeScreen(
+                    onNavigateToNuevaAtencion = { navController.navigate(route = "nueva_atencion") },
+                    onNavigateToDetalle = { idPaciente -> }
+                )
+            }
+
+            // Ruta 3: Pantalla de Nueva Atención
+            composable(route = "nueva_atencion") {
+                AtencionScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onGuardarAtencion = { navController.popBackStack() }
+                )
+            }
+
+            // Ruta 4: Historial de Atenciones
+            composable(route = "historial") {
+                HistorialScreen(
+                    onNavigateToDetalle = { idExploracion -> }
+                )
+            }
+
+            // Ruta 5: Perfil (Futura)
+            composable(route = "perfil") {
+                // PerfilScreen()
+            }
         }
+    }
+}
+
+// Componente centralizado de la barra de navegación
+@Composable
+fun AppBottomNavigation(
+    currentRoute: String?,
+    onNavigate: (String) -> Unit
+) {
+    NavigationBar(
+        containerColor = Color.White,
+        tonalElevation = 8.dp
+    ) {
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.People, contentDescription = null) },
+            label = { Text("Pacientes") },
+            selected = currentRoute == "home",
+            onClick = { onNavigate("home") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = DarkTeal,
+                selectedTextColor = DarkTeal,
+                indicatorColor = LightCyan
+            )
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.Folder, contentDescription = null) },
+            label = { Text("Historial") },
+            selected = currentRoute == "historial",
+            onClick = { onNavigate("historial") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = DarkTeal,
+                selectedTextColor = DarkTeal,
+                indicatorColor = LightCyan
+            )
+        )
+        NavigationBarItem(
+            icon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
+            label = { Text("Perfil") },
+            selected = currentRoute == "perfil",
+            onClick = { onNavigate("perfil") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = DarkTeal,
+                selectedTextColor = DarkTeal,
+                indicatorColor = LightCyan
+            )
+        )
     }
 }
