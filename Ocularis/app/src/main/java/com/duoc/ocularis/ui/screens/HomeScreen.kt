@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.R
 
-// Paleta de colores de Ocularis
 private val DarkTeal = Color(0xFF147376)
 private val LightCyan = Color(0xFFD9F8F7)
 private val LightPink = Color(0xFFFFEBEB)
@@ -40,7 +39,7 @@ fun HomeScreen(
 ) {
     Scaffold(
         topBar = { HomeTopBar() },
-        bottomBar = { HomeBottomNavigation() },
+        // ELIMINADO: bottomBar = { ... }
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = { Text("Nueva Atención", color = Color.White, fontWeight = FontWeight.SemiBold) },
@@ -82,22 +81,9 @@ fun HomeScreen(
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { }
-                    ) {
-                        Text(text = "Ver historial", fontSize = 13.sp, color = DarkTeal)
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = null,
-                            tint = DarkTeal,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
                 }
             }
 
-            // Datos de prueba según el prototipo
             val pacientes = listOf(
                 MockPaciente("VM", "Valentina ...", "18.421.902-3", "#OC-8921", "Estudio Completado", "Ayer — Fondo de Ojo", true, Icons.Default.CalendarToday),
                 MockPaciente("CM", "Carlos Mendoza", "15.782.110-K", "#OC-8890", "Pendiente Informe", "14 Oct — Tonometría", false, Icons.Default.Visibility),
@@ -110,7 +96,7 @@ fun HomeScreen(
             }
 
             item { StatsCard() }
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+            item { Spacer(modifier = Modifier.height(20.dp)) }
         }
     }
 }
@@ -118,7 +104,6 @@ fun HomeScreen(
 @Composable
 fun HomeTopBar() {
     Column {
-        // --- Barra Principal ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -127,15 +112,12 @@ fun HomeTopBar() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Título a la izquierda
             Text(
                 text = "Pacientes Inicio",
                 color = Color.White,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold
             )
-
-            // Sección Derecha: Únicamente Notificaciones
             IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Default.NotificationsNone,
@@ -145,8 +127,6 @@ fun HomeTopBar() {
                 )
             }
         }
-
-        // --- Sub-barra de Estado con el Isotipo ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -177,19 +157,9 @@ fun HomeTopBar() {
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(DarkTeal)
-                    )
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(DarkTeal))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "En línea",
-                        color = DarkTeal,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = "En línea", color = DarkTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -208,38 +178,22 @@ fun SearchAndFilterSection() {
         OutlinedTextField(
             value = "",
             onValueChange = {},
-            placeholder = {
-                Text(
-                    text = "Buscar por nombre, RUT o Nº de fi",
-                    color = GrayText,
-                    fontSize = 14.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
+            placeholder = { Text(text = "Buscar por nombre o RUT", color = GrayText, fontSize = 14.sp) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = DarkTeal) },
-            trailingIcon = { Icon(Icons.Default.Tune, contentDescription = null, tint = DarkTeal) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .height(52.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(52.dp),
             shape = RoundedCornerShape(26.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White,
-                unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = DarkTeal
+                unfocusedContainerColor = Color.White, focusedContainerColor = Color.White,
+                unfocusedBorderColor = Color.Transparent, focusedBorderColor = DarkTeal
             ),
             singleLine = true
         )
-
         Spacer(modifier = Modifier.height(16.dp))
-
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val chips = listOf("Todos (14)" to true, "Fondo de Ojo" to false, "Tonometría" to false, "OCT" to false)
+            val chips = listOf("Todos (14)" to true, "Fondo de Ojo" to false, "Tonometría" to false)
             items(chips) { (text, isSelected) ->
                 Surface(
                     shape = RoundedCornerShape(50),
@@ -249,8 +203,7 @@ fun SearchAndFilterSection() {
                     Text(
                         text = text,
                         color = if (isSelected) Color.White else DarkTeal,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp, fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
@@ -267,32 +220,15 @@ fun PatientCard(paciente: MockPaciente, onNavigateToDetalle: (String) -> Unit) {
             .padding(horizontal = 20.dp, vertical = 8.dp)
             .clickable { onNavigateToDetalle(paciente.id) },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .width(6.dp)
-                    .fillMaxHeight()
-                    .defaultMinSize(minHeight = 120.dp)
-                    .background(if (paciente.isSuccess) LightCyan else LightPink)
-            )
-
+            Box(modifier = Modifier.width(6.dp).fillMaxHeight().defaultMinSize(minHeight = 120.dp).background(if (paciente.isSuccess) LightCyan else LightPink))
             Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Row {
-                        Surface(
-                            shape = CircleShape,
-                            color = LightCyan,
-                            modifier = Modifier.size(44.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(paciente.initials, color = DarkTeal, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            }
+                        Surface(shape = CircleShape, color = LightCyan, modifier = Modifier.size(44.dp)) {
+                            Box(contentAlignment = Alignment.Center) { Text(paciente.initials, color = DarkTeal, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
@@ -305,46 +241,17 @@ fun PatientCard(paciente: MockPaciente, onNavigateToDetalle: (String) -> Unit) {
                             }
                         }
                     }
-
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = if (paciente.isSuccess) LightCyan else LightPink
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = if (paciente.isSuccess) Icons.Default.CheckCircleOutline else Icons.Default.MoreHoriz,
-                                contentDescription = null,
-                                tint = if (paciente.isSuccess) DarkTeal else DarkPinkText,
-                                modifier = Modifier.size(14.dp)
-                            )
+                    Surface(shape = RoundedCornerShape(50), color = if (paciente.isSuccess) LightCyan else LightPink) {
+                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = if (paciente.isSuccess) Icons.Default.CheckCircleOutline else Icons.Default.MoreHoriz, contentDescription = null, tint = if (paciente.isSuccess) DarkTeal else DarkPinkText, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = paciente.status,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (paciente.isSuccess) DarkTeal else DarkPinkText
-                            )
+                            Text(text = paciente.status, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (paciente.isSuccess) DarkTeal else DarkPinkText)
                         }
                     }
                 }
-
                 Spacer(modifier = Modifier.height(16.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = LightCyan.copy(alpha = 0.3f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Surface(shape = RoundedCornerShape(12.dp), color = LightCyan.copy(alpha = 0.3f), modifier = Modifier.fillMaxWidth()) {
+                    Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(paciente.examIcon, contentDescription = null, tint = DarkTeal, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -361,92 +268,26 @@ fun PatientCard(paciente: MockPaciente, onNavigateToDetalle: (String) -> Unit) {
 @Composable
 fun StatsCard() {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(20.dp),
+        modifier = Modifier.fillMaxWidth().padding(20.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = LightCyan)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        Row(modifier = Modifier.padding(20.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = DarkTeal,
-                    modifier = Modifier.size(48.dp)
-                ) {
+                Surface(shape = RoundedCornerShape(12.dp), color = DarkTeal, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Default.SsidChart, contentDescription = null, tint = Color.White, modifier = Modifier.padding(12.dp))
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text("Tasa de Exámenes Hoy", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
-                    Text("8 completados de 10 programados", fontSize = 12.sp, color = GrayText)
+                    Text("8 completados de 10", fontSize = 12.sp, color = GrayText)
                 }
             }
-            Surface(
-                shape = CircleShape,
-                color = Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(4.dp, DarkTeal),
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text("80%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DarkTeal)
-                }
+            Surface(shape = CircleShape, color = Color.Transparent, border = androidx.compose.foundation.BorderStroke(4.dp, DarkTeal), modifier = Modifier.size(48.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text("80%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DarkTeal) }
             }
         }
     }
 }
 
-@Composable
-fun HomeBottomNavigation() {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
-    ) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.People, contentDescription = null) },
-            label = { Text("Pacientes") },
-            selected = true,
-            onClick = { },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = DarkTeal,
-                selectedTextColor = DarkTeal,
-                indicatorColor = LightCyan
-            )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Folder, contentDescription = null) },
-            label = { Text("Historial") },
-            selected = false,
-            onClick = { }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Assignment, contentDescription = null) },
-            label = { Text("Exámenes") },
-            selected = false,
-            onClick = { }
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
-            label = { Text("Perfil") },
-            selected = false,
-            onClick = { }
-        )
-    }
-}
-
-data class MockPaciente(
-    val initials: String,
-    val name: String,
-    val rut: String,
-    val id: String,
-    val status: String,
-    val examDetails: String,
-    val isSuccess: Boolean,
-    val examIcon: androidx.compose.ui.graphics.vector.ImageVector
-)
+data class MockPaciente(val initials: String, val name: String, val rut: String, val id: String, val status: String, val examDetails: String, val isSuccess: Boolean, val examIcon: androidx.compose.ui.graphics.vector.ImageVector)
