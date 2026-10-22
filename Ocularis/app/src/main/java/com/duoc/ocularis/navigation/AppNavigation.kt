@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import com.duoc.ocularis.ui.screens.AtencionScreen
 import com.duoc.ocularis.ui.screens.DetallePacienteScreen
 import com.duoc.ocularis.ui.screens.HomeScreen
+import com.duoc.ocularis.ui.screens.ListaExamenesScreen
 import com.duoc.ocularis.ui.screens.LoginScreen
 import com.duoc.ocularis.ui.screens.HistorialScreen
 import com.duoc.ocularis.viewmodel.AppViewModel
@@ -87,7 +88,21 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                     pacienteId = pacienteId,
                     onNavigateBack = { navController.popBackStack() },
                     onVerListaExamenes = {
-                        // Futura pantalla 5.5
+                        navController.navigate(Screen.ListaExamenes.createRoute(pacienteId))
+                    }
+                )
+            }
+
+            // Ruta 2.6: Lista Completa de Exámenes (Pantalla 5.5)
+            composable(
+                route = Screen.ListaExamenes.route
+            ) { backStackEntry ->
+                val pacienteId = backStackEntry.arguments?.getString("pacienteId") ?: "OC-8921"
+                ListaExamenesScreen(
+                    pacienteId = pacienteId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetalleExamen = { examenId ->
+                        navController.navigate(Screen.DetalleExamen.createRoute(examenId))
                     }
                 )
             }
