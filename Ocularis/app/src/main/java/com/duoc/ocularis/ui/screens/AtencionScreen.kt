@@ -32,7 +32,6 @@ private val LightCyan = Color(0xFFD9F8F7)
 private val GrayText = Color(0xFF666666)
 private val LightGrayText = Color(0xFF999999)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AtencionScreen(
     onNavigateBack: () -> Unit,
@@ -84,33 +83,51 @@ fun AtencionScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Nueva Atencion", fontWeight = FontWeight.SemiBold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
-                    }
-                },
-                actions = {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.15f),
-                        modifier = Modifier
-                            .size(36.dp)
-                            .padding(end = 8.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DarkTeal)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.size(36.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(id = R.drawable.isotipo),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Color.White
+                        )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkTeal)
-            )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Nueva Atención",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.2f),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Image(
+                            painter = painterResource(id = R.drawable.isotipo),
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            }
         },
         containerColor = Color.White
     ) { paddingValues ->
