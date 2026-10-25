@@ -1,5 +1,8 @@
 package com.duoc.ocularis.ui.screens
 
+import android.widget.Toast
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -27,6 +31,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.duoc.ocularis.viewmodel.AppViewModel
 
 @Composable
@@ -366,10 +372,50 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            val context = LocalContext.current
             Surface(
                 onClick = {
-                    vm?.let { it.usuario = "Dr. Apellido" }
-                    onLogin()
+                    val activity = context as? FragmentActivity
+                    if (activity == null) {
+                        vm?.let { it.usuario = "Dr. Roberto Silva" }
+                        onLogin()
+                        return@Surface
+                    }
+
+                    val executor = ContextCompat.getMainExecutor(context)
+                    val biometricPrompt = BiometricPrompt(
+                        activity,
+                        executor,
+                        object : BiometricPrompt.AuthenticationCallback() {
+                            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                                super.onAuthenticationSucceeded(result)
+                                Toast.makeText(context, "Autenticación biométrica exitosa", Toast.LENGTH_SHORT).show()
+                                vm?.let { it.usuario = "Dr. Roberto Silva" }
+                                onLogin()
+                            }
+
+                            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                                super.onAuthenticationError(errorCode, errString)
+                                if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                                    Toast.makeText(context, "Biometría: $errString", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
+                            override fun onAuthenticationFailed() {
+                                super.onAuthenticationFailed()
+                                Toast.makeText(context, "Huella/Rostro no reconocido", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+
+                    val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                        .setTitle("Acceso Biométrico Ocularis")
+                        .setSubtitle("Autentíquese con su huella dactilar o rostro")
+                        .setNegativeButtonText("Usar Contraseña")
+                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                        .build()
+
+                    biometricPrompt.authenticate(promptInfo)
                 },
                 shape = RoundedCornerShape(50),
                 color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)

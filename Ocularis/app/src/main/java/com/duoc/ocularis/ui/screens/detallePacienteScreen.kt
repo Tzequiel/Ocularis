@@ -1,5 +1,7 @@
 package com.duoc.ocularis.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -325,13 +328,19 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val context = LocalContext.current
+            val numeroTelefono = "+56987654321"
+
             // Botones de Acción
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(
-                    onClick = { },
+                    onClick = {
+                        val intentLlamada = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numeroTelefono"))
+                        context.startActivity(intentLlamada)
+                    },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -350,7 +359,12 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
                 }
 
                 OutlinedButton(
-                    onClick = { },
+                    onClick = {
+                        val intentSms = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$numeroTelefono")).apply {
+                            putExtra("sms_body", "Estimada Valentina, le escribimos desde la Clínica Ocularis...")
+                        }
+                        context.startActivity(intentSms)
+                    },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
