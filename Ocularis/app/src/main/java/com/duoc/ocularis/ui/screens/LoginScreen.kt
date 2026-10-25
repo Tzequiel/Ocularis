@@ -307,6 +307,9 @@ fun LoginScreen(
                         if (pass.length < 8) {
                             errores.add("Tener al menos 8 caracteres (actualmente tiene ${pass.length})")
                         }
+                        if (!pass.any { it.isLowerCase() }) {
+                            errores.add("Contener al menos una letra minúscula (a-z)")
+                        }
                         if (!pass.any { it.isUpperCase() }) {
                             errores.add("Contener al menos una letra mayúscula (A-Z)")
                         }

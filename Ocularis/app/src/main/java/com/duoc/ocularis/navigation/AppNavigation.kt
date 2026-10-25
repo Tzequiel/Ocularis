@@ -23,6 +23,7 @@ import com.duoc.ocularis.ui.screens.HomeScreen
 import com.duoc.ocularis.ui.screens.ListaExamenesScreen
 import com.duoc.ocularis.ui.screens.LoginScreen
 import com.duoc.ocularis.ui.screens.HistorialScreen
+import com.duoc.ocularis.ui.screens.PerfilScreen
 import com.duoc.ocularis.viewmodel.AppViewModel
 
 private val DarkTeal = Color(0xFF147376)
@@ -46,8 +47,8 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                     currentRoute = currentRoute,
                     onNavigate = { route ->
                         navController.navigate(route) {
-                            // Evita crear múltiples copias de la misma pantalla
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            // Mantiene 'home' como ancla de la navegación inferior
+                            popUpTo("home") { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -65,7 +66,11 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
             // Ruta 1: Login
             composable(route = "login") {
                 LoginScreen(
-                    onLogin = { navController.navigate(route = "home") },
+                    onLogin = {
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    },
                     vm = vm
                 )
             }
@@ -134,9 +139,22 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 5: Perfil (Futura)
+            // Ruta 5: Perfil del Especialista
             composable(route = "perfil") {
-                // PerfilScreen()
+                PerfilScreen(
+                    vm = vm,
+                    onLogout = {
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = {
+                        navController.navigate("home") {
+                            popUpTo("home") { saveState = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
         }
     }
