@@ -92,6 +92,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 val pacienteId = backStackEntry.arguments?.getString("pacienteId") ?: "OC-8921"
                 DetallePacienteScreen(
                     pacienteId = pacienteId,
+                    vm = vm,
                     onNavigateBack = { navController.popBackStack() },
                     onVerListaExamenes = {
                         navController.navigate(Screen.ListaExamenes.createRoute(pacienteId))
@@ -106,6 +107,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 val pacienteId = backStackEntry.arguments?.getString("pacienteId") ?: "OC-8921"
                 ListaExamenesScreen(
                     pacienteId = pacienteId,
+                    vm = vm,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDetalleExamen = { examenId ->
                         navController.navigate(Screen.DetalleExamen.createRoute(examenId))

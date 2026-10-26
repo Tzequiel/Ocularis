@@ -1,11 +1,11 @@
 package com.duoc.ocularis.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,14 +15,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.duoc.ocularis.R
+import com.duoc.ocularis.viewmodel.AppViewModel
 
 private val DarkTeal = Color(0xFF147376)
 private val LightCyan = Color(0xFFD9F8F7)
@@ -34,12 +34,22 @@ private val BackgroundColor = Color(0xFFFAFAFA)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    vm: AppViewModel = viewModel(),
     onNavigateToNuevaAtencion: () -> Unit,
     onNavigateToDetalle: (String) -> Unit
 ) {
+    val pacientesDb by vm.pacientes.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredPacientesDb = pacientesDb.filter { p ->
+        searchQuery.isBlank() ||
+        p.nombre.contains(searchQuery, ignoreCase = true) ||
+        p.rut.contains(searchQuery, ignoreCase = true) ||
+        p.ficha.contains(searchQuery, ignoreCase = true)
+    }
+
     Scaffold(
         topBar = { HomeTopBar() },
-        // ELIMINADO: bottomBar = { ... }
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = { Text("Nueva Atención", color = Color.White, fontWeight = FontWeight.SemiBold) },
@@ -56,7 +66,12 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            item { SearchAndFilterSection() }
+            item {
+                SearchAndFilterSection(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it }
+                )
+            }
             item {
                 Row(
                     modifier = Modifier
@@ -74,7 +89,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "(14 activos)",
+                            text = "(${filteredPacientesDb.size} activos en BD)",
                             fontSize = 12.sp,
                             color = DarkTeal,
                             fontWeight = FontWeight.Medium,
@@ -84,12 +99,27 @@ fun HomeScreen(
                 }
             }
 
-            val pacientes = listOf(
-                MockPaciente("VM", "Valentina ...", "18.421.902-3", "#OC-8921", "Estudio Completado", "Ayer — Fondo de Ojo", true, Icons.Default.CalendarToday),
-                MockPaciente("CM", "Carlos Mendoza", "15.782.110-K", "#OC-8890", "Pendiente Informe", "14 Oct — Tonometría", false, Icons.Default.Visibility),
-                MockPaciente("MA", "Matías Alarcón Peña", "20.104.551-8", "#OC-8874", "Validado", "12 Oct — OCT Macular", true, Icons.Default.Science),
-                MockPaciente("ER", "Elena Rojas Villa...", "11.392.404-5", "#OC-8850", "Control Anual", "08 Oct — Campo Visual", true, Icons.Default.GridView)
-            )
+            val pacientes = filteredPacientesDb.map { p ->
+                val initials = p.nombre.split(" ").let { parts ->
+                    if (parts.size >= 2) "${parts[0].take(1)}${parts[1].take(1)}" else p.nombre.take(2)
+                }.uppercase()
+                val isSuccess = p.estado.contains("Completado", ignoreCase = true) || p.estado.contains("Validado", ignoreCase = true)
+                val icon = when {
+                    p.ultimoExamen.contains("Fondo", ignoreCase = true) -> Icons.Default.CalendarToday
+                    p.ultimoExamen.contains("Tonometría", ignoreCase = true) -> Icons.Default.Visibility
+                    else -> Icons.Default.Science
+                }
+                MockPaciente(
+                    initials = initials,
+                    name = p.nombre,
+                    rut = p.rut,
+                    id = p.ficha,
+                    status = p.estado,
+                    examDetails = "${p.fechaUltimoExamen} — ${p.ultimoExamen}",
+                    isSuccess = isSuccess,
+                    examIcon = icon
+                )
+            }
 
             items(pacientes) { paciente ->
                 PatientCard(paciente, onNavigateToDetalle)
@@ -143,72 +173,41 @@ fun HomeTopBar() {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Consulta Oftalmológica Central",
+                    text = "Consulta Oftalmológica Central (Room DB)",
                     color = DarkTeal,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = Color.White.copy(alpha = 0.5f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(DarkTeal))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "En línea", color = DarkTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchAndFilterSection() {
+fun SearchAndFilterSection(searchQuery: String, onSearchQueryChange: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(LightCyan.copy(alpha = 0.3f))
-            .padding(vertical = 16.dp)
+            .background(Color.White)
+            .padding(20.dp)
     ) {
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            placeholder = { Text(text = "Buscar por nombre o RUT", color = GrayText, fontSize = 14.sp) },
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            placeholder = { Text("Buscar paciente por nombre o RUT...", color = GrayText, fontSize = 14.sp) },
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = DarkTeal) },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(52.dp),
-            shape = RoundedCornerShape(26.dp),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White, focusedContainerColor = Color.White,
-                unfocusedBorderColor = Color.Transparent, focusedBorderColor = DarkTeal
+                focusedBorderColor = DarkTeal,
+                unfocusedBorderColor = LightCyan,
+                focusedContainerColor = BackgroundColor,
+                unfocusedContainerColor = BackgroundColor,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
             ),
             singleLine = true
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val chips = listOf("Todos (14)" to true, "Fondo de Ojo" to false, "Tonometría" to false)
-            items(chips) { (text, isSelected) ->
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = if (isSelected) DarkTeal else LightCyan,
-                    modifier = Modifier.clickable { }
-                ) {
-                    Text(
-                        text = text,
-                        color = if (isSelected) Color.White else DarkTeal,
-                        fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -280,11 +279,11 @@ fun StatsCard() {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text("Tasa de Exámenes Hoy", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
-                    Text("8 completados de 10", fontSize = 12.sp, color = GrayText)
+                    Text("Base de Datos Room Sincronizada", fontSize = 12.sp, color = GrayText)
                 }
             }
-            Surface(shape = CircleShape, color = Color.Transparent, border = androidx.compose.foundation.BorderStroke(4.dp, DarkTeal), modifier = Modifier.size(48.dp)) {
-                Box(contentAlignment = Alignment.Center) { Text("80%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DarkTeal) }
+            Surface(shape = CircleShape, color = Color.Transparent, border = BorderStroke(4.dp, DarkTeal), modifier = Modifier.size(48.dp)) {
+                Box(contentAlignment = Alignment.Center) { Text("100%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DarkTeal) }
             }
         }
     }

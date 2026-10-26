@@ -24,6 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.R
+import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
+import com.duoc.ocularis.data.entity.ExamenEntity
+import com.duoc.ocularis.viewmodel.AppViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Calendar
 
 // Paleta de colores de Ocularis
@@ -34,6 +38,7 @@ private val LightGrayText = Color(0xFF999999)
 
 @Composable
 fun AtencionScreen(
+    vm: AppViewModel = viewModel(),
     onNavigateBack: () -> Unit,
     onGuardarAtencion: () -> Unit
 ) {
@@ -395,7 +400,35 @@ fun AtencionScreen(
 
             // --- Botones Inferiores ---
             Button(
-                onClick = onGuardarAtencion,
+                onClick = {
+                    val consultaId = "CON-${System.currentTimeMillis()}"
+                    val examenId = "EX-${System.currentTimeMillis()}"
+                    vm.registrarConsultaYExamen(
+                        consulta = ConsultaMedicaEntity(
+                            id = consultaId,
+                            pacienteRut = rutBusqueda,
+                            medicoNombre = medicoSeleccionado,
+                            fechaHora = fechaAtencion,
+                            tipoAtencion = "Control de Seguimiento",
+                            motivoConsulta = motivoConsulta.ifBlank { "Revisión Oftalmológica General" },
+                            diagnostico = "Atendido en $sucursalSeleccionada",
+                            indicacionesReceta = "Prescripción médica registrada en sistema Ocularis."
+                        ),
+                        examen = ExamenEntity(
+                            id = examenId,
+                            pacienteRut = rutBusqueda,
+                            pacienteNombre = pacienteNombre,
+                            tipoExamen = if (motivoConsulta.isNotBlank()) motivoConsulta else "Examen General",
+                            fecha = fechaAtencion,
+                            estado = "Validado",
+                            ojoEvaluado = "Bilateral OD/OI",
+                            observacion = "Evaluación completada correctamente."
+                        ),
+                        onComplete = {
+                            onGuardarAtencion()
+                        }
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
