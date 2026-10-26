@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,8 +29,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.duoc.ocularis.R
+import com.duoc.ocularis.data.entity.PacienteEntity
 import com.duoc.ocularis.ui.theme.OcularisTheme
+import com.duoc.ocularis.viewmodel.AppViewModel
 
 private val DarkTeal = Color(0xFF147376)
 private val LightCyan = Color(0xFFD9F8F7)
@@ -44,9 +49,12 @@ private val WarningOrangeBg = Color(0xFFFEF3C7)
 @Composable
 fun DetallePacienteScreen(
     pacienteId: String = "OC-8921",
+    vm: AppViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
     onVerListaExamenes: () -> Unit = {}
 ) {
+    val paciente by vm.getPacienteFlow(pacienteId).collectAsState(initial = null)
+
     Scaffold(
         topBar = {
             Row(
@@ -73,7 +81,7 @@ fun DetallePacienteScreen(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Detalle del Paciente",
+                        text = "Detalle del Paciente (Room DB)",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
@@ -106,12 +114,12 @@ fun DetallePacienteScreen(
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             // Sección 1: Datos Principales del Paciente
-            item { PacienteHeaderCard(pacienteId = pacienteId) }
+            item { PacienteHeaderCard(paciente = paciente, pacienteIdFallback = pacienteId) }
 
             // Sección 2: Resumen y Alertas Oftalmológicas
-            item { ResumenAlertasCard() }
+            item { ResumenAlertasCard(paciente = paciente) }
 
-            // Sección 3: Exámenes del Paciente en Base de Datos (Pantalla 5 actual)
+            // Sección 3: Exámenes del Paciente en Base de Datos
             item { ExamenesBaseDatosCard(onVerListaExamenes = onVerListaExamenes) }
 
             // Sección 4: Historial de Consultas
@@ -123,8 +131,22 @@ fun DetallePacienteScreen(
 }
 
 @Composable
-fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
-    val fichaTexto = if (pacienteId.startsWith("#")) pacienteId else "#$pacienteId"
+fun PacienteHeaderCard(paciente: PacienteEntity?, pacienteIdFallback: String) {
+    val nombre = paciente?.nombre ?: "Valentina Morales Soto"
+    val rut = paciente?.rut ?: "18.421.902-3"
+    val ficha = paciente?.ficha ?: pacienteIdFallback
+    val edad = paciente?.edad ?: 32
+    val nac = paciente?.fechaNacimiento ?: "14/03/1996"
+    val prevision = paciente?.prevision ?: "Fonasa B"
+    val tel = paciente?.telefono ?: "+56 9 9123 4567"
+    val email = paciente?.email ?: "valentina.morales@correo.cl"
+
+    val initials = nombre.split(" ").let { parts ->
+        if (parts.size >= 2) "${parts[0].take(1)}${parts[1].take(1)}" else nombre.take(2)
+    }.uppercase()
+
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -148,7 +170,7 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "VM",
+                            text = initials,
                             color = DarkTeal,
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
@@ -179,7 +201,7 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Paciente Activo",
+                                    text = "Activo en BD",
                                     color = GreenActive,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold
@@ -192,7 +214,7 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
                             color = SoftCardBg
                         ) {
                             Text(
-                                text = "Ficha $fichaTexto",
+                                text = "Ficha $ficha",
                                 color = SubtitleText,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
@@ -204,14 +226,14 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Valentina Morales Soto",
+                        text = nombre,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = DarkText
                     )
 
                     Text(
-                        text = "RUT: 18.421.902-3",
+                        text = "RUT: $rut",
                         fontSize = 13.sp,
                         color = SubtitleText
                     )
@@ -239,13 +261,13 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "28 años",
+                            text = "$edad años",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = DarkText
                         )
                         Text(
-                            text = "14/03/1996",
+                            text = nac,
                             fontSize = 11.sp,
                             color = SubtitleText
                         )
@@ -259,23 +281,22 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Previsión Médica",
+                            text = "Previsión Salud",
                             fontSize = 11.sp,
                             color = SubtitleText,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Fonasa",
+                            text = prevision,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = DarkText
                         )
                         Text(
-                            text = "Tramo B",
+                            text = "Validada en Sistema",
                             fontSize = 11.sp,
-                            color = DarkTeal,
-                            fontWeight = FontWeight.SemiBold
+                            color = GreenActive
                         )
                     }
                 }
@@ -283,127 +304,37 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Datos de contacto (Teléfono y Correo)
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = SoftCardBg
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = null,
-                            tint = DarkTeal,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "+56 9 8765 4321",
-                            fontSize = 13.sp,
-                            color = DarkText,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = null,
-                            tint = DarkTeal,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "valentina.morales@email.com",
-                            fontSize = 13.sp,
-                            color = DarkText,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val context = LocalContext.current
-            val numeroTelefono = "+56987654321"
-
-            // Botones de Acción
+            // Botones de Contacto Rápido (Teléfono y Email)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
-                    onClick = {
-                        val intentLlamada = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$numeroTelefono"))
-                        context.startActivity(intentLlamada)
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = DarkTeal
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkTeal.copy(alpha = 0.3f)),
-                    contentPadding = PaddingValues(vertical = 10.dp, horizontal = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Call,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Llamar", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        val intentSms = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$numeroTelefono")).apply {
-                            putExtra("sms_body", "Estimada Valentina, le escribimos desde la Clínica Ocularis...")
-                        }
-                        context.startActivity(intentSms)
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = DarkTeal
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkTeal.copy(alpha = 0.3f)),
-                    contentPadding = PaddingValues(vertical = 10.dp, horizontal = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Message,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Mensaje", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
-
                 Button(
-                    onClick = { },
-                    modifier = Modifier.weight(1.2f),
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$tel"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = DarkTeal,
-                        contentColor = Color.White
-                    ),
-                    contentPadding = PaddingValues(vertical = 10.dp, horizontal = 8.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkTeal)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Nueva ...",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1
-                    )
+                    Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Llamar", fontSize = 13.sp)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTeal)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Mensaje", fontSize = 13.sp)
                 }
             }
         }
@@ -411,7 +342,10 @@ fun PacienteHeaderCard(pacienteId: String = "OC-8921") {
 }
 
 @Composable
-fun ResumenAlertasCard() {
+fun ResumenAlertasCard(paciente: PacienteEntity?) {
+    val alertas = paciente?.alertasClinicas ?: "Miopía bilateral (-2.25 D), Sospecha de Glaucoma"
+    val proximoControl = paciente?.proximoControl ?: "22 de Noviembre, 2024"
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -462,7 +396,7 @@ fun ResumenAlertasCard() {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Diagnósticos / Hallazgos Clínicos:",
+                text = "Diagnósticos / Hallazgos Clínicos (Room DB):",
                 fontSize = 12.sp,
                 color = SubtitleText,
                 fontWeight = FontWeight.Medium
@@ -472,33 +406,6 @@ fun ResumenAlertasCard() {
 
             // Lista de Diagnósticos
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Item 1
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = SoftCardBg,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(DarkTeal)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Miopía bilateral (-2.25 D)",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = DarkText
-                        )
-                    }
-                }
-
-                // Item 2: Alerta
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = WarningOrangeBg,
@@ -516,36 +423,10 @@ fun ResumenAlertasCard() {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Sospecha de Glaucoma en estudio",
+                            text = alertas,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = WarningOrange
-                        )
-                    }
-                }
-
-                // Item 3
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = SoftCardBg,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = GreenActive,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Córneas transparentes",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = DarkText
                         )
                     }
                 }
@@ -588,13 +469,13 @@ fun ResumenAlertasCard() {
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "22 de Noviembre, 2024",
+                            text = proximoControl,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = DarkText
                         )
                         Text(
-                            text = "(Control PIO semestral)",
+                            text = "(Control registrado en BD)",
                             fontSize = 11.sp,
                             color = DarkTeal,
                             fontWeight = FontWeight.Medium
@@ -619,7 +500,6 @@ fun ExamenesBaseDatosCard(onVerListaExamenes: () -> Unit) {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Encabezado
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Folder,
@@ -636,7 +516,7 @@ fun ExamenesBaseDatosCard(onVerListaExamenes: () -> Unit) {
                         color = DarkText
                     )
                     Text(
-                        text = "Base de Datos Clinica Ocularis • 4 exámenes sincronizados",
+                        text = "Base de Datos Clínica Ocularis • Sincronizado",
                         fontSize = 11.sp,
                         color = SubtitleText
                     )
@@ -645,190 +525,15 @@ fun ExamenesBaseDatosCard(onVerListaExamenes: () -> Unit) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Banner Intermedio / Botón a Pantalla 5.5 (Lista de Exámenes)
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onVerListaExamenes() },
-                shape = RoundedCornerShape(16.dp),
-                color = DarkTeal
+            Button(
+                onClick = onVerListaExamenes,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DarkTeal)
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = Color.White.copy(alpha = 0.2f),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.FolderZip,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column {
-                            Text(
-                                text = "Ver Lista Completa de Exámenes (4)",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Descargar PDF, DICOM, Excel y análisis",
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(
-                text = "Exámenes recientes indexados:",
-                fontSize = 12.sp,
-                color = SubtitleText,
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Examen Recent 1
-            ExamenRecentItem(
-                icon = Icons.Default.Science,
-                titulo = "OCT Macular & Nervio Óptico",
-                estado = "Validado",
-                detalles = "14 Ago 2024 - Bilateral (OU) - PDF &..."
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Examen Recent 2
-            ExamenRecentItem(
-                icon = Icons.Default.Visibility,
-                titulo = "Campimetría Humphrey 24-2",
-                estado = "Validado",
-                detalles = "14 Ago 2024 - Bilateral (OU) - Infor..."
-            )
-        }
-    }
-}
-
-@Composable
-fun ExamenRecentItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    titulo: String,
-    estado: String,
-    detalles: String
-) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = SoftCardBg,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = LightCyan,
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = DarkTeal,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = titulo,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = DarkText,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = GreenActiveBg
-                        ) {
-                            Text(
-                                text = estado,
-                                fontSize = 10.sp,
-                                color = GreenActive,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = detalles,
-                        fontSize = 11.sp,
-                        color = SubtitleText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            IconButton(onClick = { }) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.White,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Download,
-                            contentDescription = "Descargar",
-                            tint = DarkTeal,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
+                Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Ver Exámenes Sincronizados", fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -847,169 +552,27 @@ fun HistorialConsultasCard() {
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Encabezado
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.MedicalServices,
-                        contentDescription = null,
-                        tint = DarkTeal,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Historial de Consultas (3)",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkText
-                    )
-                }
-
-                Text(
-                    text = "Ver todas",
-                    fontSize = 12.sp,
-                    color = DarkTeal,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    tint = DarkTeal,
+                    modifier = Modifier.size(20.dp)
                 )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Timeline Items
-            TimelineConsultaItem(
-                fecha = "22 Oct 2024",
-                tipo = "Control",
-                titulo = "Consulta de Seguimiento Especialidad",
-                doctor = "Dr. Roberto Silva M.",
-                isLast = false
-            )
-
-            TimelineConsultaItem(
-                fecha = "14 Ago 2024",
-                tipo = "Exámenes",
-                titulo = "Examen de Campo Visual y Evaluación Glaucoma",
-                doctor = "Dra. Camila Navarro",
-                isLast = false
-            )
-
-            TimelineConsultaItem(
-                fecha = "10 May 2024",
-                tipo = "Preventivo",
-                titulo = "Control Preventivo Anual",
-                doctor = "Dr. Roberto Silva M.",
-                isLast = true
-            )
-        }
-    }
-}
-
-@Composable
-fun TimelineConsultaItem(
-    fecha: String,
-    tipo: String,
-    titulo: String,
-    doctor: String,
-    isLast: Boolean
-) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        // Línea y nodo de la línea de tiempo
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(20.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(DarkTeal)
-            )
-            if (!isLast) {
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(70.dp)
-                        .background(DarkTeal.copy(alpha = 0.2f))
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Contenido de la consulta
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = SoftCardBg,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = if (isLast) 0.dp else 12.dp)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = fecha,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = DarkTeal
-                    )
-
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = Color.White
-                    ) {
-                        Text(
-                            text = tipo,
-                            fontSize = 10.sp,
-                            color = SubtitleText,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = titulo,
-                    fontSize = 13.sp,
+                    text = "Historial de Consultas Médicas",
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = DarkText
                 )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.MedicalServices,
-                        contentDescription = null,
-                        tint = SubtitleText,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = doctor,
-                        fontSize = 11.sp,
-                        color = SubtitleText
-                    )
-                }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Registros almacenados permanentemente en Room Database.",
+                fontSize = 12.sp,
+                color = SubtitleText
+            )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DetallePacienteScreenPreview() {
-    OcularisTheme {
-        DetallePacienteScreen()
     }
 }
