@@ -42,7 +42,7 @@ fun LoginScreen(
 ) {
     // Estados inicializados con los datos del prototipo
     var username by remember { mutableStateOf("dr.apellido@hospital.org") }
-    var password by remember { mutableStateOf("12345678") }
+    var password by remember { mutableStateOf("Password123!") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var listaErroresPassword by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -330,10 +330,25 @@ fun LoginScreen(
                             errorMessage = ""
                             listaErroresPassword = errores
                         } else {
-                            errorMessage = ""
-                            listaErroresPassword = emptyList()
-                            vm?.let { it.usuario = user }
-                            onLogin()
+                            if (vm != null) {
+                                vm.loginWithInsForge(
+                                    email = user,
+                                    password = pass,
+                                    onSuccess = {
+                                        errorMessage = ""
+                                        listaErroresPassword = emptyList()
+                                        onLogin()
+                                    },
+                                    onError = { err ->
+                                        errorMessage = err
+                                        listaErroresPassword = emptyList()
+                                    }
+                                )
+                            } else {
+                                errorMessage = ""
+                                listaErroresPassword = emptyList()
+                                onLogin()
+                            }
                         }
                     }
                 },
