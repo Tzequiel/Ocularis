@@ -54,6 +54,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 val response = InsForgeClient.api.login(
                     authorization = "Bearer ${InsForgeClient.API_KEY}",
+                    apikey = InsForgeClient.API_KEY,
                     request = request
                 )
                 if (response.isSuccessful && response.body() != null) {

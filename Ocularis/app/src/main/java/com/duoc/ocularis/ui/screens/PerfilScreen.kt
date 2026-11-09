@@ -44,7 +44,8 @@ private val RedLogoutText = Color(0xFFC64141)
 fun PerfilScreen(
     vm: AppViewModel? = null,
     onLogout: () -> Unit = {},
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToAdmin: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -162,6 +163,7 @@ fun PerfilScreen(
                     onSoporte = {
                         Toast.makeText(context, "Conectando con Soporte Técnico Clínico", Toast.LENGTH_SHORT).show()
                     },
+                    onCrearUsuario = onNavigateToAdmin,
                     onCerrarSesion = onLogout
                 )
             }
@@ -763,6 +765,7 @@ fun PreferenciasToggleRow(
 fun AccionesCuentaSection(
     onHorarios: () -> Unit,
     onSoporte: () -> Unit,
+    onCrearUsuario: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -796,6 +799,50 @@ fun AccionesCuentaSection(
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "Horarios y Agenda Quirúrgica",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkText
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = SubtitleText,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onCrearUsuario() }
+        ) {
+            Row(
+                modifier = Modifier.padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = CircleShape,
+                        color = LightCyan,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.PersonAdd,
+                                contentDescription = null,
+                                tint = DarkTeal,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Panel Administrador - Crear Usuario",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = DarkText
