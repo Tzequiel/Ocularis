@@ -16,13 +16,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.duoc.ocularis.model.RolUsuario
+import com.duoc.ocularis.ui.screens.AdminDashboardScreen
 import com.duoc.ocularis.ui.screens.AtencionScreen
 import com.duoc.ocularis.ui.screens.DetalleExamenScreen
 import com.duoc.ocularis.ui.screens.DetallePacienteScreen
+import com.duoc.ocularis.ui.screens.GestionUsuariosScreen
+import com.duoc.ocularis.ui.screens.HistorialScreen
 import com.duoc.ocularis.ui.screens.HomeScreen
 import com.duoc.ocularis.ui.screens.ListaExamenesScreen
 import com.duoc.ocularis.ui.screens.LoginScreen
-import com.duoc.ocularis.ui.screens.HistorialScreen
+import com.duoc.ocularis.ui.screens.MisExamenesScreen
+import com.duoc.ocularis.ui.screens.PacienteHomeScreen
 import com.duoc.ocularis.ui.screens.PerfilScreen
 import com.duoc.ocularis.viewmodel.AppViewModel
 
@@ -37,7 +42,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Rutas donde SÍ queremos que se vea la barra de navegación
+    // Rutas donde SÍ queremos que se vea la barra de navegación del Especialista
     val rutasConBarraInferior = listOf("home", "historial", "perfil")
 
     Scaffold(
@@ -60,22 +65,83 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
         // El NavHost ahora recibe el padding del Scaffold principal
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = Screen.Login.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Ruta 1: Login
-            composable(route = "login") {
+            // Ruta 1: Login con los 3 botones rápida de perfiles
+            composable(route = Screen.Login.route) {
                 LoginScreen(
-                    onLogin = {
+                    onLoginAdmin = {
+                        vm.seleccionarRol(RolUsuario.ADMIN)
+                        navController.navigate(Screen.AdminDashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onLoginEspecialista = {
+                        vm.seleccionarRol(RolUsuario.ESPECIALISTA)
                         navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onLoginPaciente = {
+                        vm.seleccionarRol(RolUsuario.PACIENTE)
+                        navController.navigate(Screen.PacienteHome.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            // Ruta 2: Inicio del Administrador (AdminDashboardScreen)
+            composable(route = Screen.AdminDashboard.route) {
+                AdminDashboardScreen(
+                    onNavigateToGestionUsuarios = {
+                        navController.navigate(Screen.GestionUsuarios.route)
+                    },
+                    onLogout = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
                         }
                     },
                     vm = vm
                 )
             }
 
-            // Ruta 2: Inicio / Pacientes
+            // Ruta 3: Gestión de Usuarios (GestionUsuariosScreen)
+            composable(route = Screen.GestionUsuarios.route) {
+                GestionUsuariosScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    vm = vm
+                )
+            }
+
+            // Ruta 4: Inicio del Paciente (PacienteHomeScreen)
+            composable(route = Screen.PacienteHome.route) {
+                PacienteHomeScreen(
+                    nombrePaciente = "Carmen Rosa Fernández",
+                    onNavigateToMisExamenes = {
+                        navController.navigate(Screen.MisExamenes.route)
+                    },
+                    onLogout = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    vm = vm
+                )
+            }
+
+            // Ruta 5: Mis Exámenes del Paciente (MisExamenesScreen)
+            composable(route = Screen.MisExamenes.route) {
+                MisExamenesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    vm = vm
+                )
+            }
+
+            // --- Vistas del ESPECIALISTA ---
+
+            // Ruta 6: Inicio / Pacientes (Especialista)
             composable(route = "home") {
                 HomeScreen(
                     onNavigateToNuevaAtencion = { navController.navigate(route = "nueva_atencion") },
@@ -85,7 +151,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 2.5: Detalle de Paciente
+            // Ruta 6.5: Detalle de Paciente
             composable(
                 route = Screen.DetallePaciente.route
             ) { backStackEntry ->
@@ -100,7 +166,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 2.6: Lista Completa de Exámenes (Pantalla 5.5)
+            // Ruta 6.6: Lista Completa de Exámenes
             composable(
                 route = Screen.ListaExamenes.route
             ) { backStackEntry ->
@@ -115,7 +181,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 2.7: Detalle del Examen (Pantalla 6)
+            // Ruta 6.7: Detalle del Examen
             composable(
                 route = Screen.DetalleExamen.route
             ) { backStackEntry ->
@@ -126,7 +192,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 3: Pantalla de Nueva Atención
+            // Ruta 7: Pantalla de Nueva Atención
             composable(route = "nueva_atencion") {
                 AtencionScreen(
                     onNavigateBack = { navController.popBackStack() },
@@ -134,19 +200,19 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 4: Historial de Atenciones
+            // Ruta 8: Historial de Atenciones
             composable(route = "historial") {
                 HistorialScreen(
                     onNavigateToDetalle = { idExploracion -> }
                 )
             }
 
-            // Ruta 5: Perfil del Especialista
+            // Ruta 9: Perfil del Especialista
             composable(route = "perfil") {
                 PerfilScreen(
                     vm = vm,
                     onLogout = {
-                        navController.navigate("login") {
+                        navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
                     },

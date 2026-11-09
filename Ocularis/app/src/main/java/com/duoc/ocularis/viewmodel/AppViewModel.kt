@@ -11,6 +11,7 @@ import com.duoc.ocularis.data.OcularisRepository
 import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
 import com.duoc.ocularis.data.entity.ExamenEntity
 import com.duoc.ocularis.data.entity.PacienteEntity
+import com.duoc.ocularis.model.RolUsuario
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -24,8 +25,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         database.usuarioDao()
     )
 
-    // Estado de Usuario Logueado
+    // Estado de Usuario Logueado y Rol
     var usuario by mutableStateOf("Dr. Roberto Silva")
+    var rolActual by mutableStateOf(RolUsuario.ESPECIALISTA)
+
+    fun seleccionarRol(rol: RolUsuario) {
+        rolActual = rol
+        usuario = when (rol) {
+            RolUsuario.ADMIN -> "Administrador del Sistema"
+            RolUsuario.ESPECIALISTA -> "Dr. Roberto Silva"
+            RolUsuario.PACIENTE -> "Carmen Rosa Fernández"
+        }
+    }
 
     // Flujos reactivos desde la BD
     val pacientes: StateFlow<List<PacienteEntity>> = repository.allPacientes
