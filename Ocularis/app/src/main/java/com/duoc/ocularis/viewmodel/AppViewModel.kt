@@ -13,6 +13,7 @@ import com.duoc.ocularis.data.entity.ExamenEntity
 import com.duoc.ocularis.data.entity.PacienteEntity
 import com.duoc.ocularis.data.remote.InsForgeClient
 import com.duoc.ocularis.data.remote.LoginRequest
+import com.duoc.ocularis.data.remote.RegisterRequest
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -64,6 +65,37 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: "Credenciales inválidas"
                     onError("Error de autenticación InsForge: $errorMsg")
+                }
+            } catch (e: Exception) {
+                onError("Error de red: ${e.localizedMessage ?: "No se pudo conectar a InsForge"}")
+            }
+        }
+    }
+
+    // Registro automático de nuevos usuarios en InsForge Auth
+    fun registerUserWithInsForge(
+        email: String,
+        password: String,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val request = RegisterRequest(
+                    email = email,
+                    password = password
+                )
+                val response = InsForgeClient.api.registerUser(
+                    authorization = "Bearer ${InsForgeClient.API_KEY}",
+                    apikey = InsForgeClient.API_KEY,
+                    request = request
+                )
+                if (response.isSuccessful && response.body() != null) {
+                    val body = response.body()!!
+                    onSuccess(body.id)
+                } else {
+                    val errorMsg = response.errorBody()?.string() ?: "No se pudo registrar en InsForge"
+                    onError("Error de registro InsForge: $errorMsg")
                 }
             } catch (e: Exception) {
                 onError("Error de red: ${e.localizedMessage ?: "No se pudo conectar a InsForge"}")

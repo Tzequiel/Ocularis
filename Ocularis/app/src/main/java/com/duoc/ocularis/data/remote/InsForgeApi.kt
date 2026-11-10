@@ -25,6 +25,17 @@ data class LoginResponse(
     @SerializedName("refresh_token", alternate = ["refreshToken"]) val refreshToken: String? = null
 )
 
+data class RegisterRequest(
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String
+)
+
+data class RegisterResponse(
+    @SerializedName("id") val id: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("created_at", alternate = ["createdAt"]) val createdAt: String? = null
+)
+
 interface InsForgeApiService {
     @Headers("Content-Type: application/json")
     @POST("api/auth/sessions")
@@ -33,4 +44,12 @@ interface InsForgeApiService {
         @Header("apikey") apikey: String,
         @Body request: LoginRequest
     ): Response<LoginResponse>
+
+    @Headers("Content-Type: application/json")
+    @POST("api/auth/users")
+    suspend fun registerUser(
+        @Header("Authorization") authorization: String,
+        @Header("apikey") apikey: String,
+        @Body request: RegisterRequest
+    ): Response<RegisterResponse>
 }

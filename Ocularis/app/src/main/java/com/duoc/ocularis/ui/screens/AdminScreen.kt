@@ -44,6 +44,7 @@ fun AdminScreen(
     var confirmarPassword by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isConfirmVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     var errorMessage by remember { mutableStateOf("") }
     var listaErroresPassword by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -302,6 +303,7 @@ fun AdminScreen(
 
                     Button(
                         onClick = {
+                            if (isLoading) return@Button
                             val user = nuevoEmail.trim()
                             val pass = nuevaPassword.trim()
                             val conf = confirmarPassword.trim()
@@ -336,28 +338,65 @@ fun AdminScreen(
                                 } else {
                                     errorMessage = ""
                                     listaErroresPassword = emptyList()
-                                    successMessage = "Usuario creado exitosamente con rol asignado."
-                                    Toast.makeText(context, "Usuario creado con éxito", Toast.LENGTH_SHORT).show()
-                                    nuevoEmail = ""
-                                    nuevaPassword = ""
-                                    confirmarPassword = ""
+
+                                    if (vm != null) {
+                                        isLoading = true
+                                        vm.registerUserWithInsForge(
+                                            email = user,
+                                            password = pass,
+                                            onSuccess = { authId ->
+                                                isLoading = false
+                                                successMessage = "¡Usuario registrado exitosamente en InsForge! (ID Auth: $authId)"
+                                                Toast.makeText(context, "Usuario creado exitosamente", Toast.LENGTH_SHORT).show()
+                                                nuevoEmail = ""
+                                                nuevaPassword = ""
+                                                confirmarPassword = ""
+                                            },
+                                            onError = { err ->
+                                                isLoading = false
+                                                errorMessage = err
+                                            }
+                                        )
+                                    } else {
+                                        successMessage = "Usuario creado exitosamente en InsForge."
+                                        Toast.makeText(context, "Usuario creado con éxito", Toast.LENGTH_SHORT).show()
+                                        nuevoEmail = ""
+                                        nuevaPassword = ""
+                                        confirmarPassword = ""
+                                    }
                                 }
                             }
                         },
+                        enabled = !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(25.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = DarkTeal)
                     ) {
-                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Crear Usuario",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Registrando...",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Crear Usuario",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
