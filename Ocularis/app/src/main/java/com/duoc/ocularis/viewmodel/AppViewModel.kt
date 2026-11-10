@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.duoc.ocularis.data.OcularisDatabase
 import com.duoc.ocularis.data.OcularisRepository
 import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
+import com.duoc.ocularis.data.entity.EspecialistaEntity
 import com.duoc.ocularis.data.entity.ExamenEntity
 import com.duoc.ocularis.data.entity.PacienteEntity
 import com.duoc.ocularis.model.RolUsuario
@@ -46,6 +47,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val consultas: StateFlow<List<ConsultaMedicaEntity>> = repository.allConsultas
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val especialistas: StateFlow<List<EspecialistaEntity>> = repository.allEspecialistas
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Operaciones de escritura persistente

@@ -11,5 +11,6 @@ data class EspecialistaEntity(
     val especialidad: String,
     val sede: String,
     val boxConsulta: String,
-    val estadoDisponibilidad: String
+    val estadoDisponibilidad: String,
+    val horarioAtencion: String = "Lunes a Viernes: 08:30 - 13:00 hrs"
 )

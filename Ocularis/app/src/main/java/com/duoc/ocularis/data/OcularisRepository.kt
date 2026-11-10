@@ -14,6 +14,7 @@ class OcularisRepository(
     val allPacientes: Flow<List<PacienteEntity>> = pacienteDao.getAllPacientes()
     val allExamenes: Flow<List<ExamenEntity>> = examenDao.getAllExamenes()
     val allConsultas: Flow<List<ConsultaMedicaEntity>> = consultaDao.getAllConsultas()
+    val allEspecialistas: Flow<List<EspecialistaEntity>> = especialistaDao.getAllEspecialistas()
 
     fun getPacienteByRutOrFicha(rutOrFicha: String): Flow<PacienteEntity?> {
         return pacienteDao.getPacienteByRutOrFicha(rutOrFicha)

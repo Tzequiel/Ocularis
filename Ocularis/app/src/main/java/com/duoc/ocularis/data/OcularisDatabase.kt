@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
         PacienteEntity::class,
         EspecialistaEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class OcularisDatabase : RoomDatabase() {
@@ -41,6 +41,7 @@ abstract class OcularisDatabase : RoomDatabase() {
                     OcularisDatabase::class.java,
                     "ocularis_database"
                 )
+                    .fallbackToDestructiveMigration()
                     .addCallback(OcularisDatabaseCallback())
                     .build()
                 INSTANCE = instance
@@ -48,7 +49,7 @@ abstract class OcularisDatabase : RoomDatabase() {
             }
         }
 
-        private class OcularisDatabaseCallback : RoomDatabase.Callback() {
+        private class OcularisDatabaseCallback : Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 INSTANCE?.let { database ->
@@ -181,15 +182,48 @@ abstract class OcularisDatabase : RoomDatabase() {
             }
 
             // Seed Especialistas
-            val especialista = EspecialistaEntity(
-                rutOrRcm = "RCM: 14829-4",
-                nombre = "Dr. Roberto Silva Morales",
-                especialidad = "Oftalmólogo - Retina y Glaucoma",
-                sede = "Sede Central Norte",
-                boxConsulta = "Box 304 - Piso 3",
-                estadoDisponibilidad = "En Consulta / Disponible"
+            val especialistas = listOf(
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 14829-4",
+                    nombre = "Dr. Roberto Silva Morales",
+                    especialidad = "Oftalmólogo - Retina y Glaucoma",
+                    sede = "Sede Central Norte",
+                    boxConsulta = "Box 304 - Piso 3",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Lunes a Viernes: 08:30 - 13:00 hrs"
+                ),
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 19540-2",
+                    nombre = "Dr. Fernando Mendoza",
+                    especialidad = "Glaucomatólogo y Presión Ocular",
+                    sede = "Sede Central",
+                    boxConsulta = "Box 302 - Piso 3",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Martes y Jueves: 09:00 - 16:00 hrs"
+                ),
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 22108-9",
+                    nombre = "Dra. Camila Fuenzalida",
+                    especialidad = "Especialista en Córnea y Superficie Ocular",
+                    sede = "Sede Providencia",
+                    boxConsulta = "Box 108 - Piso 1",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Lunes, Miércoles y Viernes: 14:00 - 18:30 hrs"
+                ),
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 17890-1",
+                    nombre = "Dra. Javiera Torres",
+                    especialidad = "Oftalmopediatría y Estrabismo",
+                    sede = "Sede Las Condes",
+                    boxConsulta = "Box 205 - Piso 2",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Lunes a Jueves: 10:00 - 15:00 hrs"
+                )
             )
-            especialistaDao.insertEspecialista(especialista)
+
+            for (esp in especialistas) {
+                especialistaDao.insertEspecialista(esp)
+            }
 
             // Seed Usuarios
             val usuario = UsuarioEntity(

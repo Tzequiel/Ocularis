@@ -1,6 +1,7 @@
 package com.duoc.ocularis.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,9 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.duoc.ocularis.data.entity.EspecialistaEntity
 import com.duoc.ocularis.viewmodel.AppViewModel
 
-// Paleta de Colores solicitada
+// Paleta de Colores Oficial
 private val DarkTeal = Color(0xFF147376)
 private val LightCyan = Color(0xFFD9F8F7)
 private val GrayText = Color(0xFF666666)
@@ -39,6 +41,61 @@ fun PacienteHomeScreen(
 ) {
     val context = LocalContext.current
     var mostrarModalSolicitud by remember { mutableStateOf(false) }
+
+    // Estado persistente/reactivo de la Próxima Cita agendada
+    var proximaCitaTipo by remember { mutableStateOf("Control de Glaucoma & OCT Macular") }
+    var proximaCitaEspecialista by remember { mutableStateOf("Dr. Fernando Mendoza (Glaucomatólogo)") }
+    var proximaCitaFechaHora by remember { mutableStateOf("Jueves 24 de Octubre - 10:30 hrs") }
+    var proximaCitaLugar by remember { mutableStateOf("Sede Central Ocularis - Consulta 302") }
+    var proximaCitaEstado by remember { mutableStateOf("CONFIRMADA") }
+
+    // Obtener la lista de especialistas desde Room DB o lista por defecto si está vacía
+    val especialistasDB by vm?.especialistas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    
+    val listaEspecialistas = remember(especialistasDB) {
+        if (especialistasDB.isNotEmpty()) {
+            especialistasDB
+        } else {
+            listOf(
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 19540-2",
+                    nombre = "Dr. Fernando Mendoza",
+                    especialidad = "Glaucomatólogo y Presión Ocular",
+                    sede = "Sede Central",
+                    boxConsulta = "Box 302 - Piso 3",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Martes y Jueves: 09:00 - 16:00 hrs"
+                ),
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 14829-4",
+                    nombre = "Dr. Roberto Silva Morales",
+                    especialidad = "Oftalmólogo - Retina y Glaucoma",
+                    sede = "Sede Central Norte",
+                    boxConsulta = "Box 304 - Piso 3",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Lunes a Viernes: 08:30 - 13:00 hrs"
+                ),
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 22108-9",
+                    nombre = "Dra. Camila Fuenzalida",
+                    especialidad = "Especialista en Córnea y Superficie Ocular",
+                    sede = "Sede Providencia",
+                    boxConsulta = "Box 108 - Piso 1",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Lunes, Miércoles y Viernes: 14:00 - 18:30 hrs"
+                ),
+                EspecialistaEntity(
+                    rutOrRcm = "RCM: 17890-1",
+                    nombre = "Dra. Javiera Torres",
+                    especialidad = "Oftalmopediatría y Estrabismo",
+                    sede = "Sede Las Condes",
+                    boxConsulta = "Box 205 - Piso 2",
+                    estadoDisponibilidad = "Disponible",
+                    horarioAtencion = "Lunes a Jueves: 10:00 - 15:00 hrs"
+                )
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -127,7 +184,7 @@ fun PacienteHomeScreen(
                 }
             }
 
-            // TARJETA DESTACADA: Próxima Cita (Requisito Explícito)
+            // TARJETA DESTACADA: Próxima Cita (Actualizable dinámicamente)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -167,7 +224,7 @@ fun PacienteHomeScreen(
                             color = LightCyan.copy(alpha = 0.2f)
                         ) {
                             Text(
-                                text = "CONFIRMADA",
+                                text = proximaCitaEstado,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -177,7 +234,7 @@ fun PacienteHomeScreen(
                     }
 
                     Text(
-                        text = "Control de Glaucoma & OCT Macular",
+                        text = proximaCitaTipo,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -198,7 +255,7 @@ fun PacienteHomeScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Dr. Mendoza (Glaucomatólogo)",
+                            text = proximaCitaEspecialista,
                             fontSize = 14.sp,
                             color = Color.White,
                             fontWeight = FontWeight.SemiBold
@@ -217,7 +274,7 @@ fun PacienteHomeScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Jueves 24 de Octubre - 10:30 hrs",
+                            text = proximaCitaFechaHora,
                             fontSize = 14.sp,
                             color = Color.White
                         )
@@ -235,7 +292,7 @@ fun PacienteHomeScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Sede Central Ocularis - Consulta 302",
+                            text = proximaCitaLugar,
                             fontSize = 13.sp,
                             color = LightCyan
                         )
@@ -243,7 +300,7 @@ fun PacienteHomeScreen(
                 }
             }
 
-            // BOTÓN GRANDE: "Solicitar nueva hora" (Requisito Explícito)
+            // BOTÓN GRANDE: "Solicitar nueva hora"
             Button(
                 onClick = { mostrarModalSolicitud = true },
                 modifier = Modifier
@@ -368,69 +425,344 @@ fun PacienteHomeScreen(
         }
     }
 
-    // Modal de simulación para solicitar nueva hora
+    // Modal para solicitar nueva hora con Selección de Especialista y Horario
     if (mostrarModalSolicitud) {
-        AlertDialog(
-            onDismissRequest = { mostrarModalSolicitud = false },
-            title = {
+        ModalSolicitarHora(
+            listaEspecialistas = listaEspecialistas,
+            onDismiss = { mostrarModalSolicitud = false },
+            onConfirmarCita = { tipo, especialista, fechaHora, lugar ->
+                proximaCitaTipo = tipo
+                proximaCitaEspecialista = "${especialista.nombre} (${especialista.especialidad})"
+                proximaCitaFechaHora = fechaHora
+                proximaCitaLugar = "${especialista.sede} - ${especialista.boxConsulta}"
+                proximaCitaEstado = "CONFIRMADA"
+                mostrarModalSolicitud = false
+                Toast.makeText(
+                    context,
+                    "¡Hora agendada exitosamente con ${especialista.nombre} para el $fechaHora!",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModalSolicitarHora(
+    listaEspecialistas: List<EspecialistaEntity>,
+    onDismiss: () -> Unit,
+    onConfirmarCita: (tipo: String, especialista: EspecialistaEntity, fechaHora: String, lugar: String) -> Unit
+) {
+    var motivoSeleccionado by remember { mutableStateOf("Consulta Oftalmológica General") }
+    var especialistaSeleccionado by remember { mutableStateOf(listaEspecialistas.firstOrNull() ?: listaEspecialistas[0]) }
+    var fechaSeleccionada by remember { mutableStateOf("Jueves 31 de Octubre") }
+    var horaSeleccionada by remember { mutableStateOf("10:30 hrs") }
+
+    val listaMotivos = listOf(
+        "Consulta Oftalmológica General",
+        "Control de Glaucoma & Presión Ocular",
+        "Evaluación de Retina y OCT Macular",
+        "Córnea y Superficie Ocular",
+        "Examen Campimetría Computarizada"
+    )
+
+    val bloquesHorarios = listOf("09:00 hrs", "10:30 hrs", "11:45 hrs", "14:30 hrs", "16:00 hrs")
+    val fechasDisponibles = listOf("Mañana 25 Oct", "Lunes 28 Oct", "Martes 29 Oct", "Jueves 31 Oct", "Viernes 01 Nov")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint = DarkTeal,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Agendar Hora Médica",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkTeal
+                    )
+                    Text(
+                        text = "Seleccione su especialista y horario",
+                        fontSize = 12.sp,
+                        color = GrayText
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 1. Motivo de Consulta
                 Text(
-                    text = "Solicitar Nueva Hora Médica",
+                    text = "1. Motivo de la atención",
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = DarkTeal
                 )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Seleccione el tipo de atención oftálmica que requiere:",
-                        fontSize = 13.sp,
-                        color = GrayText
-                    )
 
-                    var motivo by remember { mutableStateOf("Consulta Oftalmológica General") }
-                    val opciones = listOf("Consulta General", "Control de Glaucoma", "Examen OCT", "Campimetría")
-
-                    opciones.forEach { opcion ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { motivo = opcion }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            RadioButton(
-                                selected = motivo == opcion,
-                                onClick = { motivo = opcion },
-                                colors = RadioButtonDefaults.colors(selectedColor = DarkTeal)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = opcion, fontSize = 14.sp)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = BackgroundColor,
+                    border = BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(6.dp)) {
+                        listaMotivos.forEach { motivo ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { motivoSeleccionado = motivo }
+                                    .padding(vertical = 4.dp, horizontal = 8.dp)
+                            ) {
+                                RadioButton(
+                                    selected = motivoSeleccionado == motivo,
+                                    onClick = { motivoSeleccionado = motivo },
+                                    colors = RadioButtonDefaults.colors(selectedColor = DarkTeal)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = motivo,
+                                    fontSize = 13.sp,
+                                    color = Color.Black
+                                )
+                            }
                         }
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        mostrarModalSolicitud = false
-                        Toast.makeText(
-                            context,
-                            "Solicitud enviada. Nos contactaremos para confirmar su hora.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = DarkTeal)
+
+                // 2. Selección de Especialista disponible y Horarios de atención
+                Text(
+                    text = "2. Seleccionar Especialista disponible",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkTeal
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listaEspecialistas.forEach { especialista ->
+                        val esSeleccionado = especialista.rutOrRcm == especialistaSeleccionado.rutOrRcm
+
+                        Card(
+                            onClick = { especialistaSeleccionado = especialista },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (esSeleccionado) LightCyan else Color.White
+                            ),
+                            border = BorderStroke(
+                                width = if (esSeleccionado) 2.dp else 1.dp,
+                                color = if (esSeleccionado) DarkTeal else Color.LightGray.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (esSeleccionado) DarkTeal else Color.LightGray.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.MedicalServices,
+                                                contentDescription = null,
+                                                tint = if (esSeleccionado) Color.White else DarkTeal,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = especialista.nombre,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DarkTeal
+                                        )
+                                        Text(
+                                            text = especialista.especialidad,
+                                            fontSize = 12.sp,
+                                            color = GrayText
+                                        )
+                                    }
+
+                                    if (esSeleccionado) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Seleccionado",
+                                            tint = DarkTeal,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Horario de atención del especialista
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        tint = DarkTeal,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Horario: ${especialista.horarioAtencion}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = DarkTeal
+                                    )
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Place,
+                                        contentDescription = null,
+                                        tint = GrayText,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "${especialista.sede} (${especialista.boxConsulta})",
+                                        fontSize = 11.sp,
+                                        color = GrayText
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 3. Selección de Fecha y Bloque Horario según la atención
+                Text(
+                    text = "3. Seleccionar Fecha y Horario disponible",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkTeal
+                )
+
+                // Fechas
+                Text(text = "Fecha:", fontSize = 12.sp, color = GrayText)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("Enviar Solicitud", color = Color.White)
+                    fechasDisponibles.take(3).forEach { fecha ->
+                        FilterChip(
+                            selected = fechaSeleccionada == fecha,
+                            onClick = { fechaSeleccionada = fecha },
+                            label = { Text(fecha, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = DarkTeal,
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { mostrarModalSolicitud = false }) {
-                    Text("Cancelar", color = GrayText)
+
+                // Bloques de Hora
+                Text(text = "Bloque de Hora:", fontSize = 12.sp, color = GrayText)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    bloquesHorarios.take(3).forEach { bloque ->
+                        FilterChip(
+                            selected = horaSeleccionada == bloque,
+                            onClick = { horaSeleccionada = bloque },
+                            label = { Text(bloque, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = DarkTeal,
+                                selectedLabelColor = Color.White
+                            )
+                        )
+                    }
                 }
-            },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(16.dp)
-        )
-    }
+
+                // Tarjeta de Resumen
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = LightCyan.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Resumen de su cita:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkTeal
+                        )
+                        Text(
+                            text = "• Especialista: ${especialistaSeleccionado.nombre}",
+                            fontSize = 12.sp,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "• Servicio: $motivoSeleccionado",
+                            fontSize = 12.sp,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "• Fecha y Hora: $fechaSeleccionada - $horaSeleccionada",
+                            fontSize = 12.sp,
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onConfirmarCita(
+                        motivoSeleccionado,
+                        especialistaSeleccionado,
+                        "$fechaSeleccionada - $horaSeleccionada",
+                        "${especialistaSeleccionado.sede} - ${especialistaSeleccionado.boxConsulta}"
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = DarkTeal),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Confirmar y Agendar Hora",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cancelar", color = GrayText)
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp)
+    )
 }
