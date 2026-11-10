@@ -1,252 +1,534 @@
 package com.duoc.ocularis.ui.screens
 
-import androidx.compose.foundation.BorderStroke
+import android.widget.Toast
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.duoc.ocularis.R
 import com.duoc.ocularis.model.RolUsuario
 import com.duoc.ocularis.viewmodel.AppViewModel
 
-// Paleta de Colores solicitada
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val GrayText = Color(0xFF666666)
-private val BackgroundColor = Color(0xFFFAFAFA)
-
 @Composable
 fun LoginScreen(
-    onLoginAdmin: () -> Unit,
-    onLoginEspecialista: () -> Unit,
-    onLoginPaciente: () -> Unit,
-    modifier: Modifier = Modifier
+    onLoginAdmin: () -> Unit = {},
+    onLoginEspecialista: () -> Unit = {},
+    onLoginPaciente: () -> Unit = {},
+    vm: AppViewModel? = null
 ) {
+    // Estados inicializados con datos por defecto
+    var username by remember { mutableStateOf("dr.apellido@hospital.org") }
+    var password by remember { mutableStateOf("Ocularis2025!") }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var listaErroresPassword by remember { mutableStateOf<List<String>>(emptyList()) }
+
     Surface(
-        modifier = modifier.fillMaxSize(),
-        color = BackgroundColor
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 28.dp, vertical = 24.dp),
+                .padding(horizontal = 28.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Logo Ocularis
             Surface(
                 modifier = Modifier
-                    .size(110.dp)
-                    .clip(RoundedCornerShape(28.dp)),
-                color = LightCyan
+                    .size(100.dp)
+                    .clip(RoundedCornerShape(24.dp)),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(id = R.drawable.logo),
                         contentDescription = "Logo Ocularis",
-                        modifier = Modifier.size(80.dp)
+                        modifier = Modifier.size(75.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Etiqueta superior
+            // Etiqueta superior: Acceso Seguro
             Surface(
                 shape = RoundedCornerShape(50),
-                color = LightCyan
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Security,
                         contentDescription = null,
-                        tint = DarkTeal,
-                        modifier = Modifier.size(16.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "PORTAL OCULARIS",
+                        text = "ACCESO SEGURO",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = DarkTeal,
-                        letterSpacing = 1.sp
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 0.8.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Título principal
+            // Título y Subtítulo
             Text(
                 text = "Ocularis",
-                fontSize = 32.sp,
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = DarkTeal
+                color = MaterialTheme.colorScheme.onBackground
             )
+
+            Text(
+                text = "Portal Clínico Oftalmológico",
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Etiqueta: Usuario o Correo Clínico
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Badge,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Usuario o Correo Clínico",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            Text(
-                text = "Sistema de Gestión Oftalmológica\nSeleccione su perfil para ingresar",
-                fontSize = 15.sp,
-                color = GrayText,
-                textAlign = TextAlign.Center,
-                lineHeight = 20.sp
+            // Campo de Texto: Usuario
+            OutlinedTextField(
+                value = username,
+                onValueChange = {
+                    username = it
+                    errorMessage = ""
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.MedicalServices,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                supportingText = {
+                    Text(
+                        text = "Ej: dr.apellido@hospital.org | ad.apellido@hospital.org | pa.apellido@hospital.org",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Tarjeta de Ingreso Rápido con 3 Botones Grandes
-            Card(
+            // Botones rápidos para rellenar ejemplos de correo por rol
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(
+                FilterChip(
+                    selected = username.startsWith("dr."),
+                    onClick = { username = "dr.apellido@hospital.org" },
+                    label = { Text("Especialista", fontSize = 11.sp) },
+                    modifier = Modifier.weight(1f)
+                )
+                FilterChip(
+                    selected = username.startsWith("ad."),
+                    onClick = { username = "ad.apellido@hospital.org" },
+                    label = { Text("Admin", fontSize = 11.sp) },
+                    modifier = Modifier.weight(1f)
+                )
+                FilterChip(
+                    selected = username.startsWith("pa."),
+                    onClick = { username = "pa.apellido@hospital.org" },
+                    label = { Text("Paciente", fontSize = 11.sp) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Etiqueta: Contraseña
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Contraseña",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Campo de Texto: Contraseña
+            OutlinedTextField(
+                value = password,
+                onValueChange = {
+                    password = it
+                    errorMessage = ""
+                    listaErroresPassword = emptyList()
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                        Icon(
+                            imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                supportingText = {
+                    Text(
+                        text = "Credencial encriptada RSA-2048",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
+            )
+
+            if (errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(top = 4.dp)
+                )
+            }
+
+            if (listaErroresPassword.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "La contraseña debe cumplir con lo siguiente:",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        listaErroresPassword.forEach { req ->
+                            Text(
+                                text = "• $req",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Enlace: Recuperar contraseña
+            TextButton(onClick = { /* Pendiente de implementación */ }) {
+                Text(
+                    text = "¿Olvidó sus credenciales de acceso?",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Botón Principal: Ingresar al Sistema
+            Button(
+                onClick = {
+                    val user = username.trim()
+                    val pass = password.trim()
+                    val errores = mutableListOf<String>()
+
+                    if (user.isBlank() || pass.isBlank()) {
+                        errorMessage = "Por favor ingrese sus credenciales completas."
+                        listaErroresPassword = emptyList()
+                    } else {
+                        if (pass.length < 8) {
+                            errores.add("Tener al menos 8 caracteres (actualmente tiene ${pass.length})")
+                        }
+                        if (!pass.any { it.isLowerCase() }) {
+                            errores.add("Contener al menos una letra minúscula (a-z)")
+                        }
+                        if (!pass.any { it.isUpperCase() }) {
+                            errores.add("Contener al menos una letra mayúscula (A-Z)")
+                        }
+                        if (!pass.any { it.isDigit() }) {
+                            errores.add("Contener al menos un número (0-9)")
+                        }
+                        if (!pass.any { !it.isLetterOrDigit() }) {
+                            errores.add("Contener al menos un carácter especial (!@#$%^&*...)")
+                        }
+
+                        if (errores.isNotEmpty()) {
+                            errorMessage = ""
+                            listaErroresPassword = errores
+                        } else {
+                            errorMessage = ""
+                            listaErroresPassword = emptyList()
+
+                            val rol = resolverRolPorCorreo(user)
+                            vm?.seleccionarRol(rol)
+                            vm?.usuario = user
+
+                            when (rol) {
+                                RolUsuario.ADMIN -> onLoginAdmin()
+                                RolUsuario.ESPECIALISTA -> onLoginEspecialista()
+                                RolUsuario.PACIENTE -> onLoginPaciente()
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(26.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Acceso Rápido por Rol",
-                        fontSize = 14.sp,
+                        text = "Ingresar al Sistema",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = DarkTeal,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                        color = Color.White
                     )
-
-                    // 1. Botón Admin
-                    BotonIngresoRol(
-                        texto = "Entrar como Admin",
-                        subtexto = "Gestión global y métricas del sistema",
-                        icono = Icons.Default.AdminPanelSettings,
-                        containerColor = DarkTeal,
-                        contentColor = Color.White,
-                        onClick = onLoginAdmin
-                    )
-
-                    // 2. Botón Especialista
-                    BotonIngresoRol(
-                        texto = "Entrar como Especialista",
-                        subtexto = "Atención médica, fichas y exámenes",
-                        icono = Icons.Default.MedicalServices,
-                        containerColor = LightCyan,
-                        contentColor = DarkTeal,
-                        onClick = onLoginEspecialista
-                    )
-
-                    // 3. Botón Paciente
-                    BotonIngresoRol(
-                        texto = "Entrar como Paciente",
-                        subtexto = "Consulta de citas y resultados de exámenes",
-                        icono = Icons.Default.Person,
-                        containerColor = BackgroundColor,
-                        contentColor = DarkTeal,
-                        borderColor = DarkTeal.copy(alpha = 0.3f),
-                        onClick = onLoginPaciente
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color.White
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
-            // Pie de página
+            // Sección Inferior: Autenticación Rápida
             Text(
-                text = "Ocularis Health Tech v1.0",
-                fontSize = 12.sp,
-                color = GrayText
+                text = "AUTENTICACIÓN RÁPIDA",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                letterSpacing = 1.sp
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val context = LocalContext.current
+            Surface(
+                onClick = {
+                    val activity = context as? FragmentActivity
+                    val loginConRol = {
+                        val rol = resolverRolPorCorreo(username)
+                        vm?.seleccionarRol(rol)
+                        vm?.usuario = username
+                        when (rol) {
+                            RolUsuario.ADMIN -> onLoginAdmin()
+                            RolUsuario.ESPECIALISTA -> onLoginEspecialista()
+                            RolUsuario.PACIENTE -> onLoginPaciente()
+                        }
+                    }
+
+                    if (activity == null) {
+                        loginConRol()
+                        return@Surface
+                    }
+
+                    val executor = ContextCompat.getMainExecutor(context)
+                    val biometricPrompt = BiometricPrompt(
+                        activity,
+                        executor,
+                        object : BiometricPrompt.AuthenticationCallback() {
+                            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                                super.onAuthenticationSucceeded(result)
+                                Toast.makeText(context, "Autenticación biométrica exitosa", Toast.LENGTH_SHORT).show()
+                                loginConRol()
+                            }
+
+                            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                                super.onAuthenticationError(errorCode, errString)
+                                if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                                    Toast.makeText(context, "Biometría: $errString", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+
+                            override fun onAuthenticationFailed() {
+                                super.onAuthenticationFailed()
+                                Toast.makeText(context, "Huella/Rostro no reconocido", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+
+                    val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                        .setTitle("Acceso Biométrico Ocularis")
+                        .setSubtitle("Autentíquese con su huella dactilar o rostro")
+                        .setNegativeButtonText("Usar Contraseña")
+                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                        .build()
+
+                    biometricPrompt.authenticate(promptInfo)
+                },
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Fingerprint,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Acceso Biométrico Clínico",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Pie de página: Normativa y Versión
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Conexión HL7 / DICOM Optom",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = "Versión 1.0.0 (MVP) · Ocularis Health Tech",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-@Composable
-private fun BotonIngresoRol(
-    texto: String,
-    subtexto: String,
-    icono: ImageVector,
-    containerColor: Color,
-    contentColor: Color,
-    borderColor: Color? = null,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(68.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = containerColor,
-        border = borderColor?.let { BorderStroke(1.dp, it) }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(42.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = contentColor.copy(alpha = 0.15f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icono,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = texto,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
-                )
-                Text(
-                    text = subtexto,
-                    fontSize = 11.sp,
-                    color = contentColor.copy(alpha = 0.8f)
-                )
-            }
-        }
+// Función auxiliar para determinar el rol según el tipo de correo
+private fun resolverRolPorCorreo(email: String): RolUsuario {
+    val lower = email.trim().lowercase()
+    return when {
+        lower.startsWith("ad.") || lower.startsWith("admin") -> RolUsuario.ADMIN
+        lower.startsWith("pa.") || lower.startsWith("paciente") -> RolUsuario.PACIENTE
+        lower.startsWith("dr.") || lower.startsWith("doc.") || lower.contains("especialista") -> RolUsuario.ESPECIALISTA
+        else -> RolUsuario.ESPECIALISTA
     }
 }
 
@@ -268,6 +550,7 @@ fun LoginScreen(
         onLoginPaciente = {
             vm?.seleccionarRol(RolUsuario.PACIENTE)
             onLogin()
-        }
+        },
+        vm = vm
     )
 }
