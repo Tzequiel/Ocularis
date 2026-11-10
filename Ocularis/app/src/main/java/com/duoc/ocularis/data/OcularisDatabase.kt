@@ -13,18 +13,16 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [
-        UsuarioEntity::class,
         ConsultaMedicaEntity::class,
         ExamenEntity::class,
         PacienteEntity::class,
         EspecialistaEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class OcularisDatabase : RoomDatabase() {
 
-    abstract fun usuarioDao(): UsuarioDao
     abstract fun consultaMedicaDao(): ConsultaMedicaDao
     abstract fun examenDao(): ExamenDao
     abstract fun pacienteDao(): PacienteDao
@@ -41,6 +39,7 @@ abstract class OcularisDatabase : RoomDatabase() {
                     OcularisDatabase::class.java,
                     "ocularis_database"
                 )
+                    .fallbackToDestructiveMigration()
                     .addCallback(OcularisDatabaseCallback())
                     .build()
                 INSTANCE = instance
@@ -48,7 +47,7 @@ abstract class OcularisDatabase : RoomDatabase() {
             }
         }
 
-        private class OcularisDatabaseCallback : RoomDatabase.Callback() {
+        private class OcularisDatabaseCallback : Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
                 INSTANCE?.let { database ->
@@ -64,7 +63,6 @@ abstract class OcularisDatabase : RoomDatabase() {
             val examenDao = database.examenDao()
             val consultaDao = database.consultaMedicaDao()
             val especialistaDao = database.especialistaDao()
-            val usuarioDao = database.usuarioDao()
 
             // Seed Pacientes
             val pacientes = listOf(
@@ -190,15 +188,6 @@ abstract class OcularisDatabase : RoomDatabase() {
                 estadoDisponibilidad = "En Consulta / Disponible"
             )
             especialistaDao.insertEspecialista(especialista)
-
-            // Seed Usuarios
-            val usuario = UsuarioEntity(
-                emailOrRut = "roberto.silva",
-                passwordHash = "123456",
-                rol = "ESPECIALISTA",
-                referenciaId = "RCM: 14829-4"
-            )
-            usuarioDao.insertUsuario(usuario)
         }
     }
 }

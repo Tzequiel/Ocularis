@@ -42,10 +42,9 @@ fun LoginScreen(
 ) {
     // Estados inicializados con los datos del prototipo
     var username by remember { mutableStateOf("dr.apellido@hospital.org") }
-    var password by remember { mutableStateOf("12345678") }
+    var password by remember { mutableStateOf("Password123!") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    var listaErroresPassword by remember { mutableStateOf<List<String>>(emptyList()) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -208,7 +207,6 @@ fun LoginScreen(
                 onValueChange = {
                     password = it
                     errorMessage = ""
-                    listaErroresPassword = emptyList()
                 },
                 leadingIcon = {
                     Icon(
@@ -258,33 +256,6 @@ fun LoginScreen(
                 )
             }
 
-            if (listaErroresPassword.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "La contraseña debe cumplir con lo siguiente:",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        listaErroresPassword.forEach { req ->
-                            Text(
-                                text = "• $req",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(4.dp))
 
             // Enlace: Recuperar contraseña
@@ -304,35 +275,25 @@ fun LoginScreen(
                 onClick = {
                     val user = username.trim()
                     val pass = password.trim()
-                    val errores = mutableListOf<String>()
 
                     if (user.isBlank() || pass.isBlank()) {
                         errorMessage = "Por favor ingrese sus credenciales completas."
-                        listaErroresPassword = emptyList()
                     } else {
-                        if (pass.length < 8) {
-                            errores.add("Tener al menos 8 caracteres (actualmente tiene ${pass.length})")
-                        }
-                        if (!pass.any { it.isLowerCase() }) {
-                            errores.add("Contener al menos una letra minúscula (a-z)")
-                        }
-                        if (!pass.any { it.isUpperCase() }) {
-                            errores.add("Contener al menos una letra mayúscula (A-Z)")
-                        }
-                        if (!pass.any { it.isDigit() }) {
-                            errores.add("Contener al menos un número (0-9)")
-                        }
-                        if (!pass.any { !it.isLetterOrDigit() }) {
-                            errores.add("Contener al menos un carácter especial (!@#$%^&*...)")
-                        }
-
-                        if (errores.isNotEmpty()) {
-                            errorMessage = ""
-                            listaErroresPassword = errores
+                        errorMessage = ""
+                        if (vm != null) {
+                            vm.loginWithInsForge(
+                                email = user,
+                                password = pass,
+                                onSuccess = {
+                                    errorMessage = ""
+                                    onLogin()
+                                },
+                                onError = { err ->
+                                    errorMessage = err
+                                }
+                            )
                         } else {
                             errorMessage = ""
-                            listaErroresPassword = emptyList()
-                            vm?.let { it.usuario = user }
                             onLogin()
                         }
                     }

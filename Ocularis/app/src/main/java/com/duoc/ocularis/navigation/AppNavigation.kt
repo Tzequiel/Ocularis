@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.duoc.ocularis.ui.screens.AdminScreen
 import com.duoc.ocularis.ui.screens.AtencionScreen
 import com.duoc.ocularis.ui.screens.DetalleExamenScreen
 import com.duoc.ocularis.ui.screens.DetallePacienteScreen
@@ -155,7 +156,18 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                             popUpTo("home") { saveState = true }
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToAdmin = {
+                        navController.navigate("admin")
                     }
+                )
+            }
+
+            // Ruta 6: Admin Screen (Crear Usuario)
+            composable(route = "admin") {
+                AdminScreen(
+                    vm = vm,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
