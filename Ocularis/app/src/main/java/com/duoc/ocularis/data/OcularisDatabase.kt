@@ -225,14 +225,54 @@ abstract class OcularisDatabase : RoomDatabase() {
                 especialistaDao.insertEspecialista(esp)
             }
 
-            // Seed Usuarios
-            val usuario = UsuarioEntity(
-                emailOrRut = "roberto.silva",
-                passwordHash = "123456",
-                rol = "ESPECIALISTA",
-                referenciaId = "RCM: 14829-4"
+            // Seed Usuarios con roles definidos en la base de datos
+            val usuariosSeed = listOf(
+                UsuarioEntity(
+                    emailOrRut = "ad.apellido@hospital.org",
+                    passwordHash = "Ocularis2025!",
+                    rol = "ADMIN"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "admin@ocularis.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "ADMIN"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "dr.apellido@hospital.org",
+                    passwordHash = "Ocularis2025!",
+                    rol = "ESPECIALISTA"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "roberto.silva",
+                    passwordHash = "123456",
+                    rol = "ESPECIALISTA",
+                    referenciaId = "RCM: 14829-4"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "r.silva@ocularis.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "ESPECIALISTA"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "pa.apellido@hospital.org",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "carmen.fernandez@correo.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "valentina.morales@correo.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
+                )
             )
-            usuarioDao.insertUsuario(usuario)
+
+            for (u in usuariosSeed) {
+                usuarioDao.insertUsuario(u)
+            }
         }
     }
 }

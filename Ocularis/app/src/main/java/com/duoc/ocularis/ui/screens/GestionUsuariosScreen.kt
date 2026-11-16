@@ -34,7 +34,7 @@ private val BackgroundColor = Color(0xFFFAFAFA)
 
 data class UsuarioUiModel(
     val id: String,
-    val nombre: String,
+    val nombre: String,S
     val rol: RolUsuario,
     val correoOrRut: String,
     val detalle: String // Especialidad o Previsión
@@ -52,9 +52,10 @@ fun GestionUsuariosScreen(
     // Estado con datos de prueba realistas
     val listaUsuarios = remember {
         mutableStateListOf(
-            UsuarioUiModel("U01", "Dr. Roberto Silva", RolUsuario.ESPECIALISTA, "r.silva@ocularis.cl", "Retinólogo Clinico"),
+            UsuarioUiModel("U01", "Dr. Roberto Silva", RolUsuario.ESPECIALISTA, "r.silva@ocularis.cl", "Retinólogo Clínico"),
             UsuarioUiModel("U02", "Dra. María Mendoza", RolUsuario.ESPECIALISTA, "m.mendoza@ocularis.cl", "Especialista en Glaucoma"),
-            UsuarioUiModel("U03", "Carmen Rosa Fernández", RolUsuario.PACIENTE, "12.456.789-0", "Paciente - Fonasa B"),
+            UsuarioUiModel("U03", "Carmen Rosa Fernández", RolUsuario.PACIENTE, "carmen.fernandez@correo.cl", "Paciente - Fonasa B"),
+
             UsuarioUiModel("U04", "Juan Pablo Morales", RolUsuario.PACIENTE, "15.890.123-K", "Paciente - Isapre Banmédica"),
             UsuarioUiModel("U05", "Dra. Sofía Alarcón", RolUsuario.ESPECIALISTA, "s.alarcon@ocularis.cl", "Córnea y Cirugía Refractiva"),
             UsuarioUiModel("U06", "Administrador Central", RolUsuario.ADMIN, "admin@ocularis.cl", "Superusuario de Sistema"),
@@ -70,8 +71,10 @@ fun GestionUsuariosScreen(
     // Campos para el modal de agregar usuario
     var nuevoNombre by remember { mutableStateOf("") }
     var nuevoCorreo by remember { mutableStateOf("") }
+    var nuevaPassword by remember { mutableStateOf("Ocularis2025!") }
     var nuevoDetalle by remember { mutableStateOf("") }
     var nuevoRol by remember { mutableStateOf(RolUsuario.ESPECIALISTA) }
+    var isCreatingUser by remember { mutableStateOf(false) }
 
     val usuariosFiltrados = listaUsuarios.filter { usuario ->
         val coincideTexto = usuario.nombre.contains(filtroTexto, ignoreCase = true) ||
@@ -248,13 +251,13 @@ fun GestionUsuariosScreen(
         )
     }
 
-    // Diálogo para Añadir Usuario
+    // Diálogo para Añadir Usuario con Integración InsForge
     if (mostrarDialogoAgregar) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogoAgregar = false },
+            onDismissRequest = { if (!isCreatingUser) mostrarDialogoAgregar = false },
             title = {
                 Text(
-                    text = "Añadir Nuevo Usuario",
+                    text = "Añadir Nuevo Usuario (InsForge)",
                     fontWeight = FontWeight.Bold,
                     color = DarkTeal
                 )
@@ -271,7 +274,14 @@ fun GestionUsuariosScreen(
                     OutlinedTextField(
                         value = nuevoCorreo,
                         onValueChange = { nuevoCorreo = it },
-                        label = { Text("Correo o RUT") },
+                        label = { Text("Correo Electrónico InsForge") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = nuevaPassword,
+                        onValueChange = { nuevaPassword = it },
+                        label = { Text("Contraseña (Min. 8 car., Mayús, Minús, Núm, Espec.)") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -282,7 +292,7 @@ fun GestionUsuariosScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Text("Seleccionar Rol:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = DarkTeal)
+                    Text("Seleccionar Rol en la Base de Datos:", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = DarkTeal)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -304,30 +314,73 @@ fun GestionUsuariosScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (nuevoNombre.isNotBlank() && nuevoCorreo.isNotBlank()) {
-                            listaUsuarios.add(
-                                UsuarioUiModel(
-                                    id = "U${System.currentTimeMillis().toString().takeLast(4)}",
-                                    nombre = nuevoNombre.trim(),
+                        val email = nuevoCorreo.trim()
+                        val nombre = nuevoNombre.trim()
+                        val pass = nuevaPassword.trim()
+                        if (nombre.isNotBlank() && email.isNotBlank()) {
+                            if (vm != null) {
+                                isCreatingUser = true
+                                vm.registerUserWithInsForge(
+                                    email = email,
+                                    password = pass,
                                     rol = nuevoRol,
-                                    correoOrRut = nuevoCorreo.trim(),
-                                    detalle = if (nuevoDetalle.isNotBlank()) nuevoDetalle.trim() else "Registrado recientement"
+                                    onSuccess = { authId ->
+                                        isCreatingUser = false
+                                        listaUsuarios.add(
+                                            UsuarioUiModel(
+                                                id = "U${System.currentTimeMillis().toString().takeLast(4)}",
+                                                nombre = nombre,
+                                                rol = nuevoRol,
+                                                correoOrRut = email,
+                                                detalle = if (nuevoDetalle.isNotBlank()) nuevoDetalle.trim() else "Registrado en InsForge DB"
+                                            )
+                                        )
+                                        mostrarDialogoAgregar = false
+                                        nuevoNombre = ""
+                                        nuevoCorreo = ""
+                                        nuevoDetalle = ""
+                                        Toast.makeText(context, "Usuario registrado en InsForge y DB local", Toast.LENGTH_SHORT).show()
+                                    },
+                                    onError = { err ->
+                                        isCreatingUser = false
+                                        Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                    }
                                 )
-                            )
-                            mostrarDialogoAgregar = false
-                            nuevoNombre = ""
-                            nuevoCorreo = ""
-                            nuevoDetalle = ""
-                            Toast.makeText(context, "Usuario añadido con éxito", Toast.LENGTH_SHORT).show()
+                            } else {
+                                listaUsuarios.add(
+                                    UsuarioUiModel(
+                                        id = "U${System.currentTimeMillis().toString().takeLast(4)}",
+                                        nombre = nombre,
+                                        rol = nuevoRol,
+                                        correoOrRut = email,
+                                        detalle = if (nuevoDetalle.isNotBlank()) nuevoDetalle.trim() else "Registrado recientement"
+                                    )
+                                )
+                                mostrarDialogoAgregar = false
+                                nuevoNombre = ""
+                                nuevoCorreo = ""
+                                nuevoDetalle = ""
+                                Toast.makeText(context, "Usuario añadido con éxito", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
+                    enabled = !isCreatingUser,
                     colors = ButtonDefaults.buttonColors(containerColor = DarkTeal)
                 ) {
-                    Text("Guardar", color = Color.White)
+                    if (isCreatingUser) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Creando...", color = Color.White)
+                    } else {
+                        Text("Guardar", color = Color.White)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogoAgregar = false }) {
+                TextButton(
+                    onClick = { mostrarDialogoAgregar = false },
+                    enabled = !isCreatingUser
+                ) {
                     Text("Cancelar", color = GrayText)
                 }
             },
@@ -424,7 +477,7 @@ private fun UsuarioItemCard(
                 }
             }
 
-            // Botón de eliminar (Icono de basurero solicitada)
+            // Botón de eliminar
             IconButton(onClick = onDeleteClick) {
                 Icon(
                     imageVector = Icons.Default.Delete,

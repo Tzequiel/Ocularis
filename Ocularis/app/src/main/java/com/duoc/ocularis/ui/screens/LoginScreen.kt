@@ -46,10 +46,10 @@ fun LoginScreen(
     onLoginPaciente: () -> Unit = {},
     vm: AppViewModel? = null
 ) {
-    // Estados inicializados con datos por defecto
     var username by remember { mutableStateOf("dr.apellido@hospital.org") }
     var password by remember { mutableStateOf("Ocularis2025!") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var listaErroresPassword by remember { mutableStateOf<List<String>>(emptyList()) }
 
@@ -102,7 +102,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "ACCESO SEGURO",
+                        text = "ACCESO SEGURO - INSFORGE AUTH",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -168,7 +168,7 @@ fun LoginScreen(
                 },
                 supportingText = {
                     Text(
-                        text = "Ej: dr.apellido@hospital.org | ad.apellido@hospital.org | pa.apellido@hospital.org",
+                        text = "Correo corporativo registrado en InsForge",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -184,32 +184,7 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
 
-            // Botones rápidos para rellenar ejemplos de correo por rol
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                FilterChip(
-                    selected = username.startsWith("dr."),
-                    onClick = { username = "dr.apellido@hospital.org" },
-                    label = { Text("Especialista", fontSize = 11.sp) },
-                    modifier = Modifier.weight(1f)
-                )
-                FilterChip(
-                    selected = username.startsWith("ad."),
-                    onClick = { username = "ad.apellido@hospital.org" },
-                    label = { Text("Admin", fontSize = 11.sp) },
-                    modifier = Modifier.weight(1f)
-                )
-                FilterChip(
-                    selected = username.startsWith("pa."),
-                    onClick = { username = "pa.apellido@hospital.org" },
-                    label = { Text("Paciente", fontSize = 11.sp) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -263,7 +238,7 @@ fun LoginScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 supportingText = {
                     Text(
-                        text = "Credencial encriptada RSA-2048",
+                        text = "Autenticación segura con servidor InsForge",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -321,7 +296,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             // Enlace: Recuperar contraseña
-            TextButton(onClick = { /* Pendiente de implementación */ }) {
+            TextButton(onClick = { /* Pendiente */ }) {
                 Text(
                     text = "¿Olvidó sus credenciales de acceso?",
                     fontSize = 13.sp,
@@ -332,52 +307,46 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Botón Principal: Ingresar al Sistema
+            // Botón Principal: Ingresar al Sistema mediante InsForge
             Button(
                 onClick = {
+                    if (isLoading) return@Button
                     val user = username.trim()
                     val pass = password.trim()
-                    val errores = mutableListOf<String>()
 
                     if (user.isBlank() || pass.isBlank()) {
                         errorMessage = "Por favor ingrese sus credenciales completas."
                         listaErroresPassword = emptyList()
                     } else {
-                        if (pass.length < 8) {
-                            errores.add("Tener al menos 8 caracteres (actualmente tiene ${pass.length})")
-                        }
-                        if (!pass.any { it.isLowerCase() }) {
-                            errores.add("Contener al menos una letra minúscula (a-z)")
-                        }
-                        if (!pass.any { it.isUpperCase() }) {
-                            errores.add("Contener al menos una letra mayúscula (A-Z)")
-                        }
-                        if (!pass.any { it.isDigit() }) {
-                            errores.add("Contener al menos un número (0-9)")
-                        }
-                        if (!pass.any { !it.isLetterOrDigit() }) {
-                            errores.add("Contener al menos un carácter especial (!@#$%^&*...)")
-                        }
+                        errorMessage = ""
+                        listaErroresPassword = emptyList()
 
-                        if (errores.isNotEmpty()) {
-                            errorMessage = ""
-                            listaErroresPassword = errores
+                        if (vm != null) {
+                            isLoading = true
+                            vm.loginWithInsForge(
+                                email = user,
+                                password = pass,
+                                onSuccess = { rol ->
+                                    isLoading = false
+                                    errorMessage = ""
+                                    when (rol) {
+                                        RolUsuario.ADMIN -> onLoginAdmin()
+                                        RolUsuario.ESPECIALISTA -> onLoginEspecialista()
+                                        RolUsuario.PACIENTE -> onLoginPaciente()
+                                    }
+                                },
+                                onError = { err ->
+                                    isLoading = false
+                                    errorMessage = err
+                                }
+                            )
                         } else {
-                            errorMessage = ""
-                            listaErroresPassword = emptyList()
-
-                            val rol = resolverRolPorCorreo(user)
-                            vm?.seleccionarRol(rol)
-                            vm?.usuario = user
-
-                            when (rol) {
-                                RolUsuario.ADMIN -> onLoginAdmin()
-                                RolUsuario.ESPECIALISTA -> onLoginEspecialista()
-                                RolUsuario.PACIENTE -> onLoginPaciente()
-                            }
+                            // Fallback para vista previa
+                            onLoginEspecialista()
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -385,18 +354,33 @@ fun LoginScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Ingresar al Sistema",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Verificando en InsForge...",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            text = "Ingresar al Sistema (InsForge)",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
                 }
             }
 
@@ -417,19 +401,34 @@ fun LoginScreen(
             Surface(
                 onClick = {
                     val activity = context as? FragmentActivity
-                    val loginConRol = {
-                        val rol = resolverRolPorCorreo(username)
-                        vm?.seleccionarRol(rol)
-                        vm?.usuario = username
-                        when (rol) {
-                            RolUsuario.ADMIN -> onLoginAdmin()
-                            RolUsuario.ESPECIALISTA -> onLoginEspecialista()
-                            RolUsuario.PACIENTE -> onLoginPaciente()
+                    val loginConInsForgeBiometrico = {
+                        val user = username.trim()
+                        val pass = password.trim()
+                        if (vm != null && user.isNotBlank() && pass.isNotBlank()) {
+                            isLoading = true
+                            vm.loginWithInsForge(
+                                email = user,
+                                password = pass,
+                                onSuccess = { rol ->
+                                    isLoading = false
+                                    when (rol) {
+                                        RolUsuario.ADMIN -> onLoginAdmin()
+                                        RolUsuario.ESPECIALISTA -> onLoginEspecialista()
+                                        RolUsuario.PACIENTE -> onLoginPaciente()
+                                    }
+                                },
+                                onError = { err ->
+                                    isLoading = false
+                                    errorMessage = err
+                                }
+                            )
+                        } else {
+                            onLoginEspecialista()
                         }
                     }
 
                     if (activity == null) {
-                        loginConRol()
+                        loginConInsForgeBiometrico()
                         return@Surface
                     }
 
@@ -441,7 +440,7 @@ fun LoginScreen(
                             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                                 super.onAuthenticationSucceeded(result)
                                 Toast.makeText(context, "Autenticación biométrica exitosa", Toast.LENGTH_SHORT).show()
-                                loginConRol()
+                                loginConInsForgeBiometrico()
                             }
 
                             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -502,7 +501,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión HL7 / DICOM Optom",
+                    text = "Conexión HL7 / DICOM Optom · InsForge Cloud",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
@@ -521,36 +520,16 @@ fun LoginScreen(
     }
 }
 
-// Función auxiliar para determinar el rol según el tipo de correo
-private fun resolverRolPorCorreo(email: String): RolUsuario {
-    val lower = email.trim().lowercase()
-    return when {
-        lower.startsWith("ad.") || lower.startsWith("admin") -> RolUsuario.ADMIN
-        lower.startsWith("pa.") || lower.startsWith("paciente") -> RolUsuario.PACIENTE
-        lower.startsWith("dr.") || lower.startsWith("doc.") || lower.contains("especialista") -> RolUsuario.ESPECIALISTA
-        else -> RolUsuario.ESPECIALISTA
-    }
-}
-
-// Overload para mantener compatibilidad si se le pasa onLogin o AppViewModel
+// Overload para mantener compatibilidad si se le pasa onLogin único
 @Composable
 fun LoginScreen(
     onLogin: () -> Unit,
     vm: AppViewModel? = null
 ) {
     LoginScreen(
-        onLoginAdmin = {
-            vm?.seleccionarRol(RolUsuario.ADMIN)
-            onLogin()
-        },
-        onLoginEspecialista = {
-            vm?.seleccionarRol(RolUsuario.ESPECIALISTA)
-            onLogin()
-        },
-        onLoginPaciente = {
-            vm?.seleccionarRol(RolUsuario.PACIENTE)
-            onLogin()
-        },
+        onLoginAdmin = { onLogin() },
+        onLoginEspecialista = { onLogin() },
+        onLoginPaciente = { onLogin() },
         vm = vm
     )
 }

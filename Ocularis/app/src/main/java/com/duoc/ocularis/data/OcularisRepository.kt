@@ -56,6 +56,10 @@ class OcularisRepository(
         return usuarioDao.getUsuarioByEmailOrRut(emailOrRut)
     }
 
+    suspend fun findUsuario(emailOrRut: String): UsuarioEntity? {
+        return usuarioDao.findUsuarioByEmailOrRut(emailOrRut)
+    }
+
     suspend fun insertUsuario(usuario: UsuarioEntity) {
         usuarioDao.insertUsuario(usuario)
     }

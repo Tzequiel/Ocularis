@@ -9,8 +9,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UsuarioDao {
-    @Query("SELECT * FROM usuarios WHERE emailOrRut = :emailOrRut LIMIT 1")
+    @Query("SELECT * FROM usuarios WHERE LOWER(emailOrRut) = LOWER(:emailOrRut) LIMIT 1")
     fun getUsuarioByEmailOrRut(emailOrRut: String): Flow<UsuarioEntity?>
+
+    @Query("SELECT * FROM usuarios WHERE LOWER(emailOrRut) = LOWER(:emailOrRut) LIMIT 1")
+    suspend fun findUsuarioByEmailOrRut(emailOrRut: String): UsuarioEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUsuario(usuario: UsuarioEntity)

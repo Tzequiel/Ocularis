@@ -16,7 +16,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.duoc.ocularis.model.RolUsuario
 import com.duoc.ocularis.ui.screens.AdminDashboardScreen
 import com.duoc.ocularis.ui.screens.AtencionScreen
 import com.duoc.ocularis.ui.screens.DetalleExamenScreen
@@ -62,33 +61,30 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
             }
         }
     ) { innerPadding ->
-        // El NavHost ahora recibe el padding del Scaffold principal
         NavHost(
             navController = navController,
             startDestination = Screen.Login.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Ruta 1: Login con los 3 botones rápida de perfiles
+            // Ruta 1: Login con validación exclusiva InsForge y roles de Base de Datos
             composable(route = Screen.Login.route) {
                 LoginScreen(
                     onLoginAdmin = {
-                        vm.seleccionarRol(RolUsuario.ADMIN)
                         navController.navigate(Screen.AdminDashboard.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
                     onLoginEspecialista = {
-                        vm.seleccionarRol(RolUsuario.ESPECIALISTA)
                         navController.navigate("home") {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
                     },
                     onLoginPaciente = {
-                        vm.seleccionarRol(RolUsuario.PACIENTE)
                         navController.navigate(Screen.PacienteHome.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
-                    }
+                    },
+                    vm = vm
                 )
             }
 
@@ -118,7 +114,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
             // Ruta 4: Inicio del Paciente (PacienteHomeScreen)
             composable(route = Screen.PacienteHome.route) {
                 PacienteHomeScreen(
-                    nombrePaciente = "Carmen Rosa Fernández",
+                    nombrePaciente = vm.usuario,
                     onNavigateToMisExamenes = {
                         navController.navigate(Screen.MisExamenes.route)
                     },
