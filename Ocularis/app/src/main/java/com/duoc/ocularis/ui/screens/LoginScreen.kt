@@ -3,6 +3,7 @@ package com.duoc.ocularis.ui.screens
 import android.widget.Toast
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -33,17 +35,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.duoc.ocularis.R
+import com.duoc.ocularis.model.RolUsuario
 import com.duoc.ocularis.viewmodel.AppViewModel
 
 @Composable
 fun LoginScreen(
-    onLogin: () -> Unit,
+    onLoginAdmin: () -> Unit = {},
+    onLoginEspecialista: () -> Unit = {},
+    onLoginPaciente: () -> Unit = {},
     vm: AppViewModel? = null
 ) {
-    // Estados inicializados con los datos del prototipo
     var username by remember { mutableStateOf("dr.apellido@hospital.org") }
-    var password by remember { mutableStateOf("12345678") }
+    var password by remember { mutableStateOf("Ocularis2025!") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var listaErroresPassword by remember { mutableStateOf<List<String>>(emptyList()) }
 
@@ -69,8 +75,8 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    androidx.compose.foundation.Image(
-                        painter = androidx.compose.ui.res.painterResource(id = com.duoc.ocularis.R.drawable.logo),
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
                         contentDescription = "Logo Ocularis",
                         modifier = Modifier.size(75.dp)
                     )
@@ -96,7 +102,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "ACCESO SEGURO",
+                        text = "ACCESO SEGURO - INSFORGE AUTH",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -162,7 +168,7 @@ fun LoginScreen(
                 },
                 supportingText = {
                     Text(
-                        text = "Matrícula médica o correo corporativo",
+                        text = "Correo corporativo registrado en InsForge",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -177,6 +183,8 @@ fun LoginScreen(
                     unfocusedContainerColor = Color.White
                 )
             )
+
+
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -230,7 +238,7 @@ fun LoginScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 supportingText = {
                     Text(
-                        text = "Credencial encriptada RSA-2048",
+                        text = "Autenticación segura con servidor InsForge",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -288,7 +296,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             // Enlace: Recuperar contraseña
-            TextButton(onClick = { /* Pendiente de implementación */ }) {
+            TextButton(onClick = { /* Pendiente */ }) {
                 Text(
                     text = "¿Olvidó sus credenciales de acceso?",
                     fontSize = 13.sp,
@@ -299,44 +307,46 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Botón Principal: Ingresar al Sistema
+            // Botón Principal: Ingresar al Sistema mediante InsForge
             Button(
                 onClick = {
+                    if (isLoading) return@Button
                     val user = username.trim()
                     val pass = password.trim()
-                    val errores = mutableListOf<String>()
 
                     if (user.isBlank() || pass.isBlank()) {
                         errorMessage = "Por favor ingrese sus credenciales completas."
                         listaErroresPassword = emptyList()
                     } else {
-                        if (pass.length < 8) {
-                            errores.add("Tener al menos 8 caracteres (actualmente tiene ${pass.length})")
-                        }
-                        if (!pass.any { it.isLowerCase() }) {
-                            errores.add("Contener al menos una letra minúscula (a-z)")
-                        }
-                        if (!pass.any { it.isUpperCase() }) {
-                            errores.add("Contener al menos una letra mayúscula (A-Z)")
-                        }
-                        if (!pass.any { it.isDigit() }) {
-                            errores.add("Contener al menos un número (0-9)")
-                        }
-                        if (!pass.any { !it.isLetterOrDigit() }) {
-                            errores.add("Contener al menos un carácter especial (!@#$%^&*...)")
-                        }
+                        errorMessage = ""
+                        listaErroresPassword = emptyList()
 
-                        if (errores.isNotEmpty()) {
-                            errorMessage = ""
-                            listaErroresPassword = errores
+                        if (vm != null) {
+                            isLoading = true
+                            vm.loginWithInsForge(
+                                email = user,
+                                password = pass,
+                                onSuccess = { rol ->
+                                    isLoading = false
+                                    errorMessage = ""
+                                    when (rol) {
+                                        RolUsuario.ADMIN -> onLoginAdmin()
+                                        RolUsuario.ESPECIALISTA -> onLoginEspecialista()
+                                        RolUsuario.PACIENTE -> onLoginPaciente()
+                                    }
+                                },
+                                onError = { err ->
+                                    isLoading = false
+                                    errorMessage = err
+                                }
+                            )
                         } else {
-                            errorMessage = ""
-                            listaErroresPassword = emptyList()
-                            vm?.let { it.usuario = user }
-                            onLogin()
+                            // Fallback para vista previa
+                            onLoginEspecialista()
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -344,18 +354,33 @@ fun LoginScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Ingresar al Sistema",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Verificando en InsForge...",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            text = "Ingresar al Sistema (InsForge)",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
                 }
             }
 
@@ -376,9 +401,34 @@ fun LoginScreen(
             Surface(
                 onClick = {
                     val activity = context as? FragmentActivity
+                    val loginConInsForgeBiometrico = {
+                        val user = username.trim()
+                        val pass = password.trim()
+                        if (vm != null && user.isNotBlank() && pass.isNotBlank()) {
+                            isLoading = true
+                            vm.loginWithInsForge(
+                                email = user,
+                                password = pass,
+                                onSuccess = { rol ->
+                                    isLoading = false
+                                    when (rol) {
+                                        RolUsuario.ADMIN -> onLoginAdmin()
+                                        RolUsuario.ESPECIALISTA -> onLoginEspecialista()
+                                        RolUsuario.PACIENTE -> onLoginPaciente()
+                                    }
+                                },
+                                onError = { err ->
+                                    isLoading = false
+                                    errorMessage = err
+                                }
+                            )
+                        } else {
+                            onLoginEspecialista()
+                        }
+                    }
+
                     if (activity == null) {
-                        vm?.let { it.usuario = "Dr. Roberto Silva" }
-                        onLogin()
+                        loginConInsForgeBiometrico()
                         return@Surface
                     }
 
@@ -390,8 +440,7 @@ fun LoginScreen(
                             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                                 super.onAuthenticationSucceeded(result)
                                 Toast.makeText(context, "Autenticación biométrica exitosa", Toast.LENGTH_SHORT).show()
-                                vm?.let { it.usuario = "Dr. Roberto Silva" }
-                                onLogin()
+                                loginConInsForgeBiometrico()
                             }
 
                             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -452,7 +501,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión HL7 / DICOM Optom",
+                    text = "Conexión HL7 / DICOM Optom · InsForge Cloud",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
@@ -469,4 +518,18 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+// Overload para mantener compatibilidad si se le pasa onLogin único
+@Composable
+fun LoginScreen(
+    onLogin: () -> Unit,
+    vm: AppViewModel? = null
+) {
+    LoginScreen(
+        onLoginAdmin = { onLogin() },
+        onLoginEspecialista = { onLogin() },
+        onLoginPaciente = { onLogin() },
+        vm = vm
+    )
 }

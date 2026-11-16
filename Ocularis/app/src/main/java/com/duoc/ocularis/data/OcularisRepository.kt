@@ -14,6 +14,7 @@ class OcularisRepository(
     val allPacientes: Flow<List<PacienteEntity>> = pacienteDao.getAllPacientes()
     val allExamenes: Flow<List<ExamenEntity>> = examenDao.getAllExamenes()
     val allConsultas: Flow<List<ConsultaMedicaEntity>> = consultaDao.getAllConsultas()
+    val allEspecialistas: Flow<List<EspecialistaEntity>> = especialistaDao.getAllEspecialistas()
 
     fun getPacienteByRutOrFicha(rutOrFicha: String): Flow<PacienteEntity?> {
         return pacienteDao.getPacienteByRutOrFicha(rutOrFicha)
@@ -53,6 +54,10 @@ class OcularisRepository(
 
     fun getUsuario(emailOrRut: String): Flow<UsuarioEntity?> {
         return usuarioDao.getUsuarioByEmailOrRut(emailOrRut)
+    }
+
+    suspend fun findUsuario(emailOrRut: String): UsuarioEntity? {
+        return usuarioDao.findUsuarioByEmailOrRut(emailOrRut)
     }
 
     suspend fun insertUsuario(usuario: UsuarioEntity) {
