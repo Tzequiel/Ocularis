@@ -34,7 +34,7 @@ private val BackgroundColor = Color(0xFFFAFAFA)
 
 data class UsuarioUiModel(
     val id: String,
-    val nombre: String,S
+    val nombre: String,
     val rol: RolUsuario,
     val correoOrRut: String,
     val detalle: String // Especialidad o Previsión

@@ -267,6 +267,31 @@ abstract class OcularisDatabase : RoomDatabase() {
                     emailOrRut = "valentina.morales@correo.cl",
                     passwordHash = "Ocularis2025!",
                     rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "carlos.mendoza@correo.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "matias.alarcon@correo.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "elena.rojas@correo.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "paciente@ocularis.cl",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "paciente@hospital.org",
+                    passwordHash = "Ocularis2025!",
+                    rol = "PACIENTE"
                 )
             )
 

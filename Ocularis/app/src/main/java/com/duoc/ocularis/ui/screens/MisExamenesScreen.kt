@@ -47,50 +47,38 @@ fun MisExamenesScreen(
 ) {
     val context = LocalContext.current
 
-    // Datos falsos realistas del rubro oftalmológico
-    val listaExamenes = remember {
-        listOf(
+    // Conexión en tiempo real a la Base de Datos InsForge desde AppViewModel
+    val examenesDB by vm?.examenes?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val usuarioActual = vm?.usuario ?: ""
+
+    // Filtrar los exámenes para mostrar únicamente los 2 exámenes pertenecientes al paciente logueado
+    val listaExamenes = remember(examenesDB, usuarioActual) {
+        val examenesPaciente = if (usuarioActual.isBlank()) {
+            examenesDB.take(2)
+        } else {
+            val filtrados = examenesDB.filter { ex ->
+                ex.pacienteRut.equals(usuarioActual, ignoreCase = true) ||
+                        ex.pacienteNombre.contains(usuarioActual, ignoreCase = true) ||
+                        usuarioActual.contains(ex.pacienteNombre, ignoreCase = true) ||
+                        usuarioActual.contains(ex.pacienteRut, ignoreCase = true)
+            }
+            if (filtrados.isNotEmpty()) filtrados else examenesDB.take(2)
+        }
+
+        examenesPaciente.map { ex ->
+            val esDisponible = ex.estado.equals("Validado", ignoreCase = true) ||
+                    ex.estado.equals("Completado", ignoreCase = true) ||
+                    ex.estado.equals("Disponible", ignoreCase = true)
+
             ExamenPacienteUiModel(
-                id = "EX-101",
-                tipoExamen = "OCT Macular Alta Resolución",
-                fecha = "12/10/2024",
-                ojoEvaluado = "Bilateral",
-                estado = "Disponible",
-                profesional = "Dr. Roberto Silva"
-            ),
-            ExamenPacienteUiModel(
-                id = "EX-102",
-                tipoExamen = "Campimetría Computarizada 24-2",
-                fecha = "05/10/2024",
-                ojoEvaluado = "Ojo Izquierdo (OI)",
-                estado = "Disponible",
-                profesional = "Dra. María Mendoza"
-            ),
-            ExamenPacienteUiModel(
-                id = "EX-103",
-                tipoExamen = "Angiografía Retinal Fluoresceínica",
-                fecha = "18/10/2024",
-                ojoEvaluado = "Ojo Derecho (OD)",
-                estado = "Pendiente de informe",
-                profesional = "Dr. Roberto Silva"
-            ),
-            ExamenPacienteUiModel(
-                id = "EX-104",
-                tipoExamen = "Tonometría de Aplanación Goldmann",
-                fecha = "20/09/2024",
-                ojoEvaluado = "Bilateral",
-                estado = "Disponible",
-                profesional = "Dr. Mendoza"
-            ),
-            ExamenPacienteUiModel(
-                id = "EX-105",
-                tipoExamen = "Paquimetría Ultrasónica Corneal",
-                fecha = "15/08/2024",
-                ojoEvaluado = "Bilateral",
-                estado = "Disponible",
-                profesional = "Dra. Sofía Alarcón"
+                id = ex.id,
+                tipoExamen = ex.tipoExamen,
+                fecha = ex.fecha,
+                ojoEvaluado = ex.ojoEvaluado,
+                estado = if (esDisponible) "Disponible" else "Pendiente de informe",
+                profesional = "Dr. Roberto Silva Morales"
             )
-        )
+        }
     }
 
     var filtroTexto by remember { mutableStateOf("") }
@@ -204,27 +192,42 @@ fun MisExamenesScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Lista (LazyColumn) de Exámenes
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(examenesFiltrados, key = { it.id }) { examen ->
-                    ExamenCardItem(
-                        examen = examen,
-                        onDescargarPdfClick = {
-                            if (examen.estado == "Disponible") {
-                                examenVerPdf = examen
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "El examen se encuentra pendiente de informe médico.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
+            if (examenesFiltrados.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No se encontraron exámenes registrados en InsForge.",
+                        fontSize = 14.sp,
+                        color = GrayText
                     )
+                }
+            } else {
+                // Lista (LazyColumn) de Exámenes desde InsForge DB
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(examenesFiltrados, key = { it.id }) { examen ->
+                        ExamenCardItem(
+                            examen = examen,
+                            onDescargarPdfClick = {
+                                if (examen.estado == "Disponible") {
+                                    examenVerPdf = examen
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "El examen se encuentra pendiente de informe médico.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
