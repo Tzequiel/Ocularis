@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.duoc.ocularis.data.OcularisDatabase
 import com.duoc.ocularis.data.OcularisRepository
 import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
 import com.duoc.ocularis.data.entity.EspecialistaEntity
@@ -16,19 +15,13 @@ import com.duoc.ocularis.data.entity.UsuarioEntity
 import com.duoc.ocularis.data.remote.InsForgeClient
 import com.duoc.ocularis.data.remote.LoginRequest
 import com.duoc.ocularis.data.remote.RegisterRequest
+import com.duoc.ocularis.data.remote.UserDto
 import com.duoc.ocularis.model.RolUsuario
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = OcularisDatabase.getDatabase(application)
-    private val repository = OcularisRepository(
-        database.pacienteDao(),
-        database.examenDao(),
-        database.consultaMedicaDao(),
-        database.especialistaDao(),
-        database.usuarioDao()
-    )
+    private val repository = OcularisRepository()
 
     // Estado de Usuario Logueado y Rol
     var usuario by mutableStateOf("Dr. Roberto Silva")
@@ -63,30 +56,54 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     request = request
                 )
                 if (response.isSuccessful && response.body() != null) {
-                    val userEmail = response.body()!!.user.email
+                    val userDto = response.body()!!.user
+                    val userEmail = userDto.email
 
-                    // Buscar el rol del usuario en la base de datos (Room)
+                    // 1. Verificar si InsForge devuelve rol en la metadata o campo role del usuario
+                    val insForgeRole = extractRoleFromInsForge(userDto)
+
+                    // 2. Buscar el usuario en la tabla de usuarios de Room
                     val dbUser = repository.findUsuario(userEmail)
-                    val userRol = if (dbUser != null) {
-                        when (dbUser.rol.uppercase()) {
-                            "ADMIN" -> RolUsuario.ADMIN
-                            "PACIENTE" -> RolUsuario.PACIENTE
-                            else -> RolUsuario.ESPECIALISTA
+
+                    // 3. Buscar si el correo pertenece a un paciente registrado
+                    val dbPaciente = repository.findPacienteByEmail(userEmail)
+
+                    val userRol = when {
+                        insForgeRole != null -> insForgeRole
+                        dbUser != null -> {
+                            when (dbUser.rol.uppercase()) {
+                                "ADMIN" -> RolUsuario.ADMIN
+                                "PACIENTE" -> RolUsuario.PACIENTE
+                                else -> RolUsuario.ESPECIALISTA
+                            }
                         }
-                    } else {
-                        // Si es un usuario nuevo en InsForge no registrado en Room, inferir por correo y guardar en la BD
-                        val inferred = resolverRolPorCorreo(userEmail)
+                        dbPaciente != null -> RolUsuario.PACIENTE
+                        else -> resolverRolPorCorreo(userEmail)
+                    }
+
+                    // Asegurar persistencia del rol en Room si no existía
+                    if (dbUser == null) {
                         repository.insertUsuario(
                             UsuarioEntity(
                                 emailOrRut = userEmail,
                                 passwordHash = password,
-                                rol = inferred.name
+                                rol = userRol.name
                             )
                         )
-                        inferred
                     }
 
-                    usuario = userEmail
+                    usuario = when {
+                        userRol == RolUsuario.PACIENTE -> {
+                            dbPaciente?.nombre
+                                ?: if (userEmail.equals("pa.apellido@hospital.org", ignoreCase = true) ||
+                                    userEmail.equals("carmen.fernandez@correo.cl", ignoreCase = true)) "Carmen Rosa Fernández"
+                                else userEmail.substringBefore("@").replace(".", " ").replace("_", " ")
+                                    .split(" ").joinToString(" ") { word -> word.replaceFirstChar { c -> c.uppercase() } }
+                        }
+                        userRol == RolUsuario.ADMIN -> "Administrador del Sistema"
+                        else -> dbUser?.emailOrRut ?: userEmail
+                    }
+
                     rolActual = userRol
                     onSuccess(userRol)
                 } else {
@@ -103,6 +120,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 onError("Error de red: ${e.localizedMessage ?: "No se pudo conectar a InsForge"}")
             }
         }
+    }
+
+    // Auxiliar para extraer el rol directamente del DTO de InsForge si viene en metadata
+    private fun extractRoleFromInsForge(user: UserDto): RolUsuario? {
+        val roleStr = (user.userMetadata?.get("role") as? String)
+            ?: (user.userMetadata?.get("rol") as? String)
+            ?: (user.appMetadata?.get("role") as? String)
+            ?: (user.appMetadata?.get("rol") as? String)
+            ?: user.role
+
+        if (roleStr != null) {
+            return when (roleStr.uppercase()) {
+                "ADMIN" -> RolUsuario.ADMIN
+                "PACIENTE", "PATIENT" -> RolUsuario.PACIENTE
+                "ESPECIALISTA", "DOCTOR", "MEDICO" -> RolUsuario.ESPECIALISTA
+                else -> null
+            }
+        }
+        return null
     }
 
     // Registro automático de nuevos usuarios en InsForge Auth + Base de datos Room
@@ -151,8 +187,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun resolverRolPorCorreo(email: String): RolUsuario {
         val lower = email.trim().lowercase()
         return when {
-            lower.startsWith("ad.") || lower.startsWith("admin") -> RolUsuario.ADMIN
-            lower.startsWith("pa.") || lower.startsWith("paciente") -> RolUsuario.PACIENTE
+            lower.contains("admin") || lower.startsWith("ad.") -> RolUsuario.ADMIN
+            lower.contains("paciente") || lower.contains("patient") ||
+                    lower.startsWith("pa.") || lower.startsWith("pa_") ||
+                    lower.startsWith("p.") || lower.startsWith("p_") ||
+                    lower.contains("fonasa") || lower.contains("isapre") -> RolUsuario.PACIENTE
             else -> RolUsuario.ESPECIALISTA
         }
     }

@@ -19,6 +19,9 @@ interface PacienteDao {
     @Query("SELECT * FROM pacientes WHERE rut = :rut LIMIT 1")
     fun getPacienteByRut(rut: String): Flow<PacienteEntity?>
 
+    @Query("SELECT * FROM pacientes WHERE LOWER(email) = LOWER(:email) LIMIT 1")
+    suspend fun findPacienteByEmail(email: String): PacienteEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPaciente(paciente: PacienteEntity)
 
