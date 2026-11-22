@@ -81,25 +81,19 @@ fun DetallePacienteScreen(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Detalle del Paciente (Room DB)",
+                        text = "Detalle del Paciente",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
 
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.drawable.isotipo),
-                            contentDescription = "Isotipo",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Default.NotificationsNone,
+                        contentDescription = "Notificaciones",
+                        tint = Color.White
+                    )
                 }
             }
         },

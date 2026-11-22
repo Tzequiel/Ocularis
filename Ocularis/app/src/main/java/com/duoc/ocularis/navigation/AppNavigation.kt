@@ -22,6 +22,7 @@ import com.duoc.ocularis.ui.screens.DetalleExamenScreen
 import com.duoc.ocularis.ui.screens.DetallePacienteScreen
 import com.duoc.ocularis.ui.screens.GestionUsuariosScreen
 import com.duoc.ocularis.ui.screens.HistorialScreen
+import com.duoc.ocularis.model.RolUsuario
 import com.duoc.ocularis.ui.screens.HomeScreen
 import com.duoc.ocularis.ui.screens.ListaExamenesScreen
 import com.duoc.ocularis.ui.screens.LoginScreen
@@ -44,6 +45,16 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
     // Rutas donde SÍ queremos que se vea la barra de navegación del Especialista
     val rutasConBarraInferior = listOf("home", "historial", "perfil")
 
+    val startDestination = if (vm.isLoggedIn) {
+        when (vm.rolActual) {
+            RolUsuario.ADMIN -> Screen.AdminDashboard.route
+            RolUsuario.PACIENTE -> Screen.PacienteHome.route
+            RolUsuario.ESPECIALISTA -> "home"
+        }
+    } else {
+        Screen.Login.route
+    }
+
     Scaffold(
         bottomBar = {
             if (currentRoute in rutasConBarraInferior) {
@@ -63,7 +74,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Login.route,
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
             // Ruta 1: Login con validación exclusiva InsForge y roles de Base de Datos
@@ -95,6 +106,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                         navController.navigate(Screen.GestionUsuarios.route)
                     },
                     onLogout = {
+                        vm.cerrarSesion()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -119,6 +131,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                         navController.navigate(Screen.MisExamenes.route)
                     },
                     onLogout = {
+                        vm.cerrarSesion()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -208,6 +221,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 PerfilScreen(
                     vm = vm,
                     onLogout = {
+                        vm.cerrarSesion()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }

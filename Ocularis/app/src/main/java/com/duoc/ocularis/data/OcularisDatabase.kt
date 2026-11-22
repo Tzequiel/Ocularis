@@ -225,72 +225,51 @@ abstract class OcularisDatabase : RoomDatabase() {
                 especialistaDao.insertEspecialista(esp)
             }
 
-            // Seed Usuarios con roles definidos en la base de datos
+            // Seed Usuarios con roles definidos en la base de datos (Sincronizado con InsForge)
             val usuariosSeed = listOf(
                 UsuarioEntity(
-                    emailOrRut = "ad.apellido@hospital.org",
-                    passwordHash = "Ocularis2025!",
-                    rol = "ADMIN"
-                ),
-                UsuarioEntity(
                     emailOrRut = "admin@ocularis.cl",
-                    passwordHash = "Ocularis2025!",
+                    passwordHash = "",
                     rol = "ADMIN"
                 ),
                 UsuarioEntity(
-                    emailOrRut = "dr.apellido@hospital.org",
-                    passwordHash = "Ocularis2025!",
+                    emailOrRut = "dr.silva@ocularis.cl",
+                    passwordHash = "",
                     rol = "ESPECIALISTA"
-                ),
-                UsuarioEntity(
-                    emailOrRut = "roberto.silva",
-                    passwordHash = "123456",
-                    rol = "ESPECIALISTA",
-                    referenciaId = "RCM: 14829-4"
-                ),
-                UsuarioEntity(
-                    emailOrRut = "r.silva@ocularis.cl",
-                    passwordHash = "Ocularis2025!",
-                    rol = "ESPECIALISTA"
-                ),
-                UsuarioEntity(
-                    emailOrRut = "pa.apellido@hospital.org",
-                    passwordHash = "Ocularis2025!",
-                    rol = "PACIENTE"
-                ),
-                UsuarioEntity(
-                    emailOrRut = "carmen.fernandez@correo.cl",
-                    passwordHash = "Ocularis2025!",
-                    rol = "PACIENTE"
                 ),
                 UsuarioEntity(
                     emailOrRut = "valentina.morales@correo.cl",
-                    passwordHash = "Ocularis2025!",
+                    passwordHash = "",
                     rol = "PACIENTE"
                 ),
                 UsuarioEntity(
                     emailOrRut = "carlos.mendoza@correo.cl",
-                    passwordHash = "Ocularis2025!",
+                    passwordHash = "",
                     rol = "PACIENTE"
                 ),
                 UsuarioEntity(
                     emailOrRut = "matias.alarcon@correo.cl",
-                    passwordHash = "Ocularis2025!",
+                    passwordHash = "",
                     rol = "PACIENTE"
                 ),
                 UsuarioEntity(
                     emailOrRut = "elena.rojas@correo.cl",
-                    passwordHash = "Ocularis2025!",
+                    passwordHash = "",
                     rol = "PACIENTE"
                 ),
                 UsuarioEntity(
-                    emailOrRut = "paciente@ocularis.cl",
-                    passwordHash = "Ocularis2025!",
+                    emailOrRut = "andres.sepulveda@correo.cl",
+                    passwordHash = "",
                     rol = "PACIENTE"
                 ),
                 UsuarioEntity(
-                    emailOrRut = "paciente@hospital.org",
-                    passwordHash = "Ocularis2025!",
+                    emailOrRut = "camila.fuentes@correo.cl",
+                    passwordHash = "",
+                    rol = "PACIENTE"
+                ),
+                UsuarioEntity(
+                    emailOrRut = "gabriel.valenzuela@correo.cl",
+                    passwordHash = "",
                     rol = "PACIENTE"
                 )
             )

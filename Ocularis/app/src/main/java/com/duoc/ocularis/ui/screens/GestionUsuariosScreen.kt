@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.model.RolUsuario
 import com.duoc.ocularis.viewmodel.AppViewModel
+import kotlinx.coroutines.flow.flowOf
 
 // Paleta de Colores solicitada
 private val DarkTeal = Color(0xFF147376)
@@ -49,18 +50,31 @@ fun GestionUsuariosScreen(
 ) {
     val context = LocalContext.current
 
-    // Estado con datos de prueba realistas
-    val listaUsuarios = remember {
-        mutableStateListOf(
-            UsuarioUiModel("U01", "Dr. Roberto Silva", RolUsuario.ESPECIALISTA, "r.silva@ocularis.cl", "Retinólogo Clínico"),
-            UsuarioUiModel("U02", "Dra. María Mendoza", RolUsuario.ESPECIALISTA, "m.mendoza@ocularis.cl", "Especialista en Glaucoma"),
-            UsuarioUiModel("U03", "Carmen Rosa Fernández", RolUsuario.PACIENTE, "carmen.fernandez@correo.cl", "Paciente - Fonasa B"),
+    // Estado reactivo desde la Base de Datos / InsForge
+    val usuariosList by (vm?.usuarios ?: flowOf(emptyList())).collectAsState(initial = emptyList())
 
-            UsuarioUiModel("U04", "Juan Pablo Morales", RolUsuario.PACIENTE, "15.890.123-K", "Paciente - Isapre Banmédica"),
-            UsuarioUiModel("U05", "Dra. Sofía Alarcón", RolUsuario.ESPECIALISTA, "s.alarcon@ocularis.cl", "Córnea y Cirugía Refractiva"),
-            UsuarioUiModel("U06", "Administrador Central", RolUsuario.ADMIN, "admin@ocularis.cl", "Superusuario de Sistema"),
-            UsuarioUiModel("U07", "Rodrigo Tapia", RolUsuario.PACIENTE, "18.345.678-4", "Paciente - Fonasa C")
-        )
+    val listaUsuarios = remember(usuariosList) {
+        usuariosList.map { entity ->
+            val rol = when (entity.rol.uppercase()) {
+                "ADMIN" -> RolUsuario.ADMIN
+                "PACIENTE" -> RolUsuario.PACIENTE
+                else -> RolUsuario.ESPECIALISTA
+            }
+            val detalle = when (rol) {
+                RolUsuario.ADMIN -> "Superusuario de Sistema"
+                RolUsuario.PACIENTE -> "Paciente Registrado"
+                RolUsuario.ESPECIALISTA -> "Especialista Ocularis"
+            }
+            UsuarioUiModel(
+                id = entity.emailOrRut,
+                nombre = if (rol == RolUsuario.ADMIN) "Administrador del Sistema"
+                         else entity.emailOrRut.substringBefore("@").replace(".", " ").replace("_", " ")
+                             .split(" ").joinToString(" ") { word -> word.replaceFirstChar { c -> c.uppercase() } },
+                rol = rol,
+                correoOrRut = entity.emailOrRut,
+                detalle = detalle
+            )
+        }
     }
 
     var usuarioAEliminar by remember { mutableStateOf<UsuarioUiModel?>(null) }
@@ -233,9 +247,12 @@ fun GestionUsuariosScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        listaUsuarios.remove(usuario)
+                        if (vm != null) {
+                            vm.eliminarUsuario(usuario.correoOrRut) {
+                                Toast.makeText(context, "Usuario eliminado correctamente", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                         usuarioAEliminar = null
-                        Toast.makeText(context, "Usuario eliminado correctamente", Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text("Eliminar", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold)
@@ -326,15 +343,6 @@ fun GestionUsuariosScreen(
                                     rol = nuevoRol,
                                     onSuccess = { authId ->
                                         isCreatingUser = false
-                                        listaUsuarios.add(
-                                            UsuarioUiModel(
-                                                id = "U${System.currentTimeMillis().toString().takeLast(4)}",
-                                                nombre = nombre,
-                                                rol = nuevoRol,
-                                                correoOrRut = email,
-                                                detalle = if (nuevoDetalle.isNotBlank()) nuevoDetalle.trim() else "Registrado en InsForge DB"
-                                            )
-                                        )
                                         mostrarDialogoAgregar = false
                                         nuevoNombre = ""
                                         nuevoCorreo = ""
@@ -347,15 +355,6 @@ fun GestionUsuariosScreen(
                                     }
                                 )
                             } else {
-                                listaUsuarios.add(
-                                    UsuarioUiModel(
-                                        id = "U${System.currentTimeMillis().toString().takeLast(4)}",
-                                        nombre = nombre,
-                                        rol = nuevoRol,
-                                        correoOrRut = email,
-                                        detalle = if (nuevoDetalle.isNotBlank()) nuevoDetalle.trim() else "Registrado recientement"
-                                    )
-                                )
                                 mostrarDialogoAgregar = false
                                 nuevoNombre = ""
                                 nuevoCorreo = ""
