@@ -47,6 +47,7 @@ fun PerfilScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
 
     // Estados interactivos
     val doctorNombre = vm?.usuario ?: "Dr. Roberto Silva Morales"
@@ -162,7 +163,7 @@ fun PerfilScreen(
                     onSoporte = {
                         Toast.makeText(context, "Conectando con Soporte Técnico Clínico", Toast.LENGTH_SHORT).show()
                     },
-                    onCerrarSesion = onLogout
+                    onCerrarSesion = { mostrarDialogoLogout = true }
                 )
             }
 
@@ -182,6 +183,12 @@ fun PerfilScreen(
             item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
+
+    CerrarSesionDialog(
+        visible = mostrarDialogoLogout,
+        onDismiss = { mostrarDialogoLogout = false },
+        onConfirm = onLogout
+    )
 }
 
 @Composable

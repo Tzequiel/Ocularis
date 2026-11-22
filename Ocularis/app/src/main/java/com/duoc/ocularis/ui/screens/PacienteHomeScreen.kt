@@ -43,6 +43,7 @@ fun PacienteHomeScreen(
 ) {
     val context = LocalContext.current
     var mostrarModalSolicitud by remember { mutableStateOf(false) }
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
 
     // Obtener pacientes, consultas y exámenes desde la base de datos de manera reactiva y filtrarlos por el paciente logueado
     val pacientesDB by (vm?.pacientes ?: flowOf(emptyList())).collectAsState(initial = emptyList())
@@ -131,7 +132,7 @@ fun PacienteHomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onLogout) {
+                    IconButton(onClick = { mostrarDialogoLogout = true }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "Cerrar Sesión",
@@ -439,6 +440,13 @@ fun PacienteHomeScreen(
             }
         }
     }
+
+    // Diálogo de Confirmación para Cerrar Sesión
+    CerrarSesionDialog(
+        visible = mostrarDialogoLogout,
+        onDismiss = { mostrarDialogoLogout = false },
+        onConfirm = onLogout
+    )
 
     // Modal para solicitar nueva hora con Selección de Especialista y Horario
     if (mostrarModalSolicitud) {

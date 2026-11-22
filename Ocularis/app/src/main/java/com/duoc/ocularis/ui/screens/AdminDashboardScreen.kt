@@ -14,7 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +46,7 @@ fun AdminDashboardScreen(
     vm: AppViewModel? = null,
     modifier: Modifier = Modifier
 ) {
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
     val metricas = listOf(
         MetricaAdmin(
             titulo = "Usuarios Activos Hoy",
@@ -92,7 +93,7 @@ fun AdminDashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onLogout) {
+                    IconButton(onClick = { mostrarDialogoLogout = true }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "Cerrar Sesión",
@@ -290,6 +291,13 @@ fun AdminDashboardScreen(
             }
         }
     }
+
+    // Diálogo de Confirmación para Cerrar Sesión
+    CerrarSesionDialog(
+        visible = mostrarDialogoLogout,
+        onDismiss = { mostrarDialogoLogout = false },
+        onConfirm = onLogout
+    )
 }
 
 @Composable
