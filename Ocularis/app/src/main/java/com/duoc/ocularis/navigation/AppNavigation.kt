@@ -24,6 +24,7 @@ import com.duoc.ocularis.ui.screens.GestionUsuariosScreen
 import com.duoc.ocularis.ui.screens.HistorialScreen
 import com.duoc.ocularis.model.RolUsuario
 import com.duoc.ocularis.ui.screens.HomeScreen
+import com.duoc.ocularis.ui.screens.HoraMedicaScreen
 import com.duoc.ocularis.ui.screens.ListaExamenesScreen
 import com.duoc.ocularis.ui.screens.LoginScreen
 import com.duoc.ocularis.ui.screens.MisExamenesScreen
@@ -158,7 +159,22 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 HomeScreen(
                     onNavigateToNuevaAtencion = { navController.navigate(route = "nueva_atencion") },
                     onNavigateToDetalle = { idPaciente ->
-                        navController.navigate(Screen.DetallePaciente.createRoute(idPaciente))
+                        navController.navigate(Screen.HoraMedica.createRoute(idPaciente))
+                    }
+                )
+            }
+
+            // Ruta 6.4: Consulta / Hora Médica Activa (Especialista)
+            composable(
+                route = Screen.HoraMedica.route
+            ) { backStackEntry ->
+                val pacienteId = backStackEntry.arguments?.getString("pacienteId") ?: "OC-8921"
+                HoraMedicaScreen(
+                    pacienteId = pacienteId,
+                    vm = vm,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetallePaciente = { idFicha ->
+                        navController.navigate(Screen.DetallePaciente.createRoute(idFicha))
                     }
                 )
             }

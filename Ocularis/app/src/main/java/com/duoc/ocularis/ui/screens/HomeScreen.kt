@@ -22,14 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.duoc.ocularis.R
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
-
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val LightPink = Color(0xFFFFEBEB)
-private val DarkPinkText = Color(0xFFC64141)
-private val GrayText = Color(0xFF666666)
-private val BackgroundColor = Color(0xFFFAFAFA)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,12 +34,22 @@ fun HomeScreen(
 ) {
     val pacientesDb by vm.pacientes.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var mostrarSoloPendientes by remember { mutableStateOf(true) }
 
     val filteredPacientesDb = pacientesDb.filter { p ->
-        searchQuery.isBlank() ||
-        p.nombre.contains(searchQuery, ignoreCase = true) ||
-        p.rut.contains(searchQuery, ignoreCase = true) ||
-        p.ficha.contains(searchQuery, ignoreCase = true)
+        val coincideBusqueda = searchQuery.isBlank() ||
+            p.nombre.contains(searchQuery, ignoreCase = true) ||
+            p.rut.contains(searchQuery, ignoreCase = true) ||
+            p.ficha.contains(searchQuery, ignoreCase = true)
+
+        val esPendienteOEnCurso = !p.estado.contains("Completado", ignoreCase = true) &&
+                                  !p.estado.contains("Validado", ignoreCase = true)
+
+        if (mostrarSoloPendientes) {
+            coincideBusqueda && esPendienteOEnCurso
+        } else {
+            coincideBusqueda
+        }
     }
 
     Scaffold(
@@ -76,20 +80,47 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = mostrarSoloPendientes,
+                        onClick = { mostrarSoloPendientes = true },
+                        label = { Text("Agenda Pendiente") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DarkTeal,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                    FilterChip(
+                        selected = !mostrarSoloPendientes,
+                        onClick = { mostrarSoloPendientes = false },
+                        label = { Text("Todos (${pacientesDb.size})") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DarkTeal,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            text = "Pacientes Recientes",
+                            text = if (mostrarSoloPendientes) "Agenda y Atenciones del Día" else "Todos los Pacientes",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "(${filteredPacientesDb.size} activos en BD)",
+                            text = "(${filteredPacientesDb.size} en lista)",
                             fontSize = 12.sp,
                             color = DarkTeal,
                             fontWeight = FontWeight.Medium,

@@ -8,3 +8,11 @@ val OcularisSecondary = Color(0xFF44A1A0)
 val OcularisBackground = Color(0xFFFFFFFA)
 val OcularisText = Color(0xFF0D5C63)
 val OcularisAdicional = Color(0xFF78CDD7)
+
+// Colores corporativos adicionales
+val DarkTeal = Color(0xFF147376)
+val LightCyan = Color(0xFFD9F8F7)
+val LightPink = Color(0xFFFFEBEB)
+val DarkPinkText = Color(0xFFC64141)
+val GrayText = Color(0xFF666666)
+val BackgroundColor = Color(0xFFFAFAFA)
