@@ -144,6 +144,9 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
             composable(route = Screen.MisExamenes.route) {
                 MisExamenesScreen(
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetalleExamen = { examenId ->
+                        navController.navigate(Screen.DetalleExamen.createRoute(examenId))
+                    },
                     vm = vm
                 )
             }
@@ -194,9 +197,10 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
             composable(
                 route = Screen.DetalleExamen.route
             ) { backStackEntry ->
-                val examenId = backStackEntry.arguments?.getString("examenId") ?: "OC-8921"
+                val examenId = backStackEntry.arguments?.getString("examenId") ?: "EX-0001"
                 DetalleExamenScreen(
                     examenId = examenId,
+                    vm = vm,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
