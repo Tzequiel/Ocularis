@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.duoc.ocularis.data.AccessibilityPreferencesManager
 import com.duoc.ocularis.data.OcularisRepository
 import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
 import com.duoc.ocularis.data.entity.EspecialistaEntity
@@ -21,9 +22,43 @@ import com.duoc.ocularis.model.RolUsuario
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+enum class SyncStatus {
+    SINCRONIZADO,
+    SINCRONIZANDO,
+    OFFLINE
+}
+
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = OcularisRepository()
     private val prefs = application.getSharedPreferences("ocularis_session", Context.MODE_PRIVATE)
+    private val accessibilityPrefsManager = AccessibilityPreferencesManager(application)
+
+    // Estado de Accesibilidad persistido en DataStore
+    val isHighContrast: StateFlow<Boolean> = accessibilityPrefsManager.highContrastFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val textScaleFactor: StateFlow<Float> = accessibilityPrefsManager.textScaleFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1.0f)
+
+    // Estado de Sincronización
+    var syncStatus by mutableStateOf(SyncStatus.SINCRONIZADO)
+        private set
+
+    fun setHighContrast(enabled: Boolean) {
+        viewModelScope.launch {
+            accessibilityPrefsManager.setHighContrast(enabled)
+        }
+    }
+
+    fun setTextScaleFactor(scale: Float) {
+        viewModelScope.launch {
+            accessibilityPrefsManager.setTextScale(scale)
+        }
+    }
+
+    fun actualizarEstadoSincronizacion(status: SyncStatus) {
+        syncStatus = status
+    }
 
     // Estado de Usuario Logueado y Rol con persistencia local
     var isLoggedIn by mutableStateOf(prefs.getBoolean("is_logged_in", false))

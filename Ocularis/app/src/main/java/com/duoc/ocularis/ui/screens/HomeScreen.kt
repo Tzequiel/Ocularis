@@ -24,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.duoc.ocularis.R
 import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
+import com.duoc.ocularis.viewmodel.SyncStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +54,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        topBar = { HomeTopBar() },
+        topBar = { HomeTopBar(syncStatus = vm.syncStatus) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = { Text("Nueva Atención", color = Color.White, fontWeight = FontWeight.SemiBold) },
@@ -164,7 +165,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopBar() {
+fun HomeTopBar(syncStatus: SyncStatus = SyncStatus.SINCRONIZADO) {
     TopAppBar(
         title = {
             Column {
@@ -182,6 +183,8 @@ fun HomeTopBar() {
             }
         },
         actions = {
+            com.duoc.ocularis.ui.components.SyncIndicator(status = syncStatus)
+            Spacer(modifier = Modifier.width(8.dp))
             Image(
                 painter = painterResource(id = R.drawable.isotipo),
                 contentDescription = "Isotipo",

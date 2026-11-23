@@ -51,7 +51,8 @@ fun PerfilScreen(
 
     var notifExamenes by remember { mutableStateOf(true) }
     var accesoPacs by remember { mutableStateOf(true) }
-    var contrasteClinico by remember { mutableStateOf(false) }
+    val isHighContrast by vm?.isHighContrast?.collectAsState() ?: remember { mutableStateOf(false) }
+    val textScale by vm?.textScaleFactor?.collectAsState() ?: remember { mutableStateOf(1.0f) }
 
     Scaffold(
         topBar = {
@@ -130,8 +131,10 @@ fun PerfilScreen(
                     onNotifChange = { notifExamenes = it },
                     accesoPacs = accesoPacs,
                     onPacsChange = { accesoPacs = it },
-                    contrasteClinico = contrasteClinico,
-                    onContrasteChange = { contrasteClinico = it }
+                    contrasteClinico = isHighContrast,
+                    onContrasteChange = { vm?.setHighContrast(it) },
+                    textScale = textScale,
+                    onTextScaleChange = { vm?.setTextScaleFactor(it) }
                 )
             }
 
@@ -622,7 +625,9 @@ fun PreferenciasConsultaCard(
     accesoPacs: Boolean,
     onPacsChange: (Boolean) -> Unit,
     contrasteClinico: Boolean,
-    onContrasteChange: (Boolean) -> Unit
+    onContrasteChange: (Boolean) -> Unit,
+    textScale: Float = 1.0f,
+    onTextScaleChange: (Float) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -640,7 +645,7 @@ fun PreferenciasConsultaCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Preferencias de Consulta",
+                    text = "Preferencias de Accesibilidad y Consulta",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = DarkText
@@ -674,11 +679,76 @@ fun PreferenciasConsultaCard(
             // Toggle 3
             PreferenciasToggleRow(
                 icono = Icons.Default.Contrast,
-                titulo = "Contraste Clínico Diagnóstico",
-                subtitulo = "Calibrado para angiografía con fluoresceína",
+                titulo = "Alto Contraste Clínico (DataStore)",
+                subtitulo = "Modo de contraste mejorado para lecturas diagnósticas",
                 checked = contrasteClinico,
                 onCheckedChange = onContrasteChange
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = LightCyan)
+
+            // Selector de Tamaños de Texto (DataStore)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.FormatSize,
+                        contentDescription = null,
+                        tint = DarkTeal,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Tamaño de Letra (DataStore)",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DarkText
+                        )
+                        Text(
+                            text = "Ajusta la escala de texto en la aplicación",
+                            fontSize = 12.sp,
+                            color = GrayText
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = textScale == 1.0f,
+                    onClick = { onTextScaleChange(1.0f) },
+                    label = { Text("Normal (1.0x)", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DarkTeal,
+                        selectedLabelColor = Color.White
+                    )
+                )
+                FilterChip(
+                    selected = textScale == 1.25f,
+                    onClick = { onTextScaleChange(1.25f) },
+                    label = { Text("Grande (1.25x)", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DarkTeal,
+                        selectedLabelColor = Color.White
+                    )
+                )
+                FilterChip(
+                    selected = textScale == 1.5f,
+                    onClick = { onTextScaleChange(1.5f) },
+                    label = { Text("Extra Grande (1.5x)", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DarkTeal,
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
         }
     }
 }

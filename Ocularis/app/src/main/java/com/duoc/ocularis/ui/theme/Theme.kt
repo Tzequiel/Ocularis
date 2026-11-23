@@ -7,9 +7,11 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.sp
 
 // Esquema de colores oscuros (opcional)
 private val DarkColorScheme = darkColorScheme(
@@ -34,14 +36,28 @@ private val LightColorScheme = lightColorScheme(
     onSurface = OcularisText
 )
 
+// Esquema de colores de Alto Contraste para Accesibilidad
+private val HighContrastColorScheme = darkColorScheme(
+    primary = Color(0xFFFFFF00), // Amarillo de alto contraste
+    secondary = Color(0xFF00FFFF), // Cyan de alto contraste
+    background = Color.Black,
+    surface = Color(0xFF121212),
+    onPrimary = Color.Black,
+    onSecondary = Color.Black,
+    onBackground = Color.White,
+    onSurface = Color.White
+)
+
 @Composable
 fun OcularisTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Cambiamos dynamicColor a false para que Android no cambie los colores corporativos
+    highContrast: Boolean = false,
+    textScale: Float = 1.0f,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
+        highContrast -> HighContrastColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -50,9 +66,16 @@ fun OcularisTheme(
         else -> LightColorScheme
     }
 
+    val scaledTypography = Typography(
+        bodyLarge = Typography.bodyLarge.copy(
+            fontSize = (16 * textScale).sp,
+            lineHeight = (24 * textScale).sp
+        )
+    )
+
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography, // Se mantiene el de Type.kt
+        typography = scaledTypography,
         content = content
     )
 }
