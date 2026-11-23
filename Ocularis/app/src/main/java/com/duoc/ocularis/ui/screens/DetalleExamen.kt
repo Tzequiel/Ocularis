@@ -32,26 +32,30 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.R
-import com.duoc.ocularis.ui.theme.OcularisTheme
-
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val LightCyanBg = Color(0xFFEBF7F7)
-private val SoftCardBg = Color(0xFFF3FAF9)
-private val DarkText = Color(0xFF112929)
-private val SubtitleText = Color(0xFF527173)
-private val GreenActive = Color(0xFF10A37F)
-private val GreenActiveBg = Color(0xFFE2F7F2)
-private val RedPdfBg = Color(0xFFFFEBEB)
-private val RedPdfText = Color(0xFFC64141)
+import com.duoc.ocularis.ui.theme.*
+import com.duoc.ocularis.viewmodel.AppViewModel
+import kotlinx.coroutines.flow.flowOf
 
 @Composable
 fun DetalleExamenScreen(
     examenId: String = "EX-001",
+    vm: AppViewModel? = null,
     onNavigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var mostrarModalVisor by remember { mutableStateOf(false) }
+
+    val examenesDB by (vm?.examenes ?: flowOf(emptyList())).collectAsState(initial = emptyList())
+    val examen = examenesDB.find { it.id.equals(examenId, ignoreCase = true) } ?: examenesDB.firstOrNull()
+
+    val tituloExamen = examen?.tipoExamen ?: "Examen Oftalmológico"
+    val fechaExamen = examen?.fecha ?: "Fecha no disponible"
+    val estadoExamen = examen?.estado ?: "Validado"
+    val ojoEval = examen?.ojoEvaluado ?: "Bilateral (OD e OI)"
+    val pacienteNom = examen?.pacienteNombre ?: "Paciente Ocularis"
+    val pacienteRutStr = examen?.pacienteRut ?: "15.782.110-K"
+    val observacionExamen = examen?.observacion.takeIf { !it.isNullOrBlank() } ?: "Sin observaciones clínicas registradas para este estudio."
+    val expedienteId = examen?.id ?: examenId
 
     // Motor de Síntesis de Voz Nativo (TextToSpeech)
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
@@ -129,16 +133,16 @@ fun DetalleExamenScreen(
             // Sub-barra de acciones superiores (Compartir e Imprimir Nativo)
             item {
                 RegistroClinicoSubBar(
-                    examenId = examenId,
+                    examenId = expedienteId,
                     onShare = {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "Informe Clínico Ocularis - Expediente #$examenId\n" +
-                                "Examen: OCT Macular y Fibras Nerviosas\n" +
-                                "Paciente: Valentina Morales Soto (18.421.902-3)\n" +
-                                "Estado: VALIDADO Y DISPONIBLE\n" +
+                                "Informe Clínico Ocularis - Expediente #$expedienteId\n" +
+                                "Examen: $tituloExamen\n" +
+                                "Paciente: $pacienteNom ($pacienteRutStr)\n" +
+                                "Estado: $estadoExamen\n" +
                                 "Médico Validador: Dr. Roberto Silva M."
                             )
                         }
@@ -159,7 +163,7 @@ fun DetalleExamenScreen(
             item {
                 HerramientasAccesibilidadCard(
                     onAudio = {
-                        val textoInforme = "Detalle del examen OCT Macular y Fibras Nerviosas. Paciente Valentina Morales Soto. Estado: Validado y Disponible. Resumen de resultados: Espesor retiniano macular conservado en ambos ojos. Sin evidencia de edema quístico macular ni desprendimiento seroso. Complejo de células ganglionares dentro de límites de referencia normales."
+                        val textoInforme = "Detalle del examen $tituloExamen. Paciente $pacienteNom. Estado: $estadoExamen. Resumen de resultados: $observacionExamen"
                         tts?.speak(textoInforme, TextToSpeech.QUEUE_FLUSH, null, null)
                         Toast.makeText(context, "Reproduciendo informe en voz alta...", Toast.LENGTH_SHORT).show()
                     },
@@ -174,7 +178,7 @@ fun DetalleExamenScreen(
 
             // Tarjeta Principal del Examen Clínico
             item {
-                ExamenPrincipalCard()
+                ExamenPrincipalCard(examen = examen)
             }
 
             // Sección Documento Oficial Asociado (PDF)
@@ -182,7 +186,7 @@ fun DetalleExamenScreen(
                 DocumentoAsociadoCard(
                     onVisualizar = { mostrarModalVisor = true },
                     onDescargar = {
-                        Toast.makeText(context, "Descargando archivo cifrado Informe_OCT_OC-8921.pdf...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Descargando archivo cifrado Informe_${expedienteId}.pdf...", Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -405,7 +409,15 @@ fun HerramientasAccesibilidadCard(
 }
 
 @Composable
-fun ExamenPrincipalCard() {
+fun ExamenPrincipalCard(examen: com.duoc.ocularis.data.entity.ExamenEntity?) {
+    val tituloExamen = examen?.tipoExamen ?: "Examen Oftalmológico"
+    val fechaExamen = examen?.fecha ?: "Fecha no disponible"
+    val estadoExamen = examen?.estado?.uppercase() ?: "VALIDADO Y DISPONIBLE"
+    val pacienteNom = examen?.pacienteNombre ?: "Paciente Ocularis"
+    val pacienteRutStr = examen?.pacienteRut ?: "15.782.110-K"
+    val ojoEval = examen?.ojoEvaluado ?: "Bilateral (OD e OI)"
+    val observacionExamen = examen?.observacion.takeIf { !it.isNullOrBlank() } ?: "Sin observaciones clínicas registradas para este estudio."
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -424,7 +436,7 @@ fun ExamenPrincipalCard() {
                 verticalAlignment = Alignment.Top
             ) {
                 Text(
-                    text = "OCT Macular y Fibras Nerviosas",
+                    text = tituloExamen,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = DarkTeal,
@@ -456,7 +468,7 @@ fun ExamenPrincipalCard() {
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "22 de Octubre, 2024 - 10:30 hrs",
+                    text = fechaExamen,
                     fontSize = 12.sp,
                     color = SubtitleText
                 )
@@ -512,7 +524,7 @@ fun ExamenPrincipalCard() {
                             color = GreenActive
                         )
                         Text(
-                            text = "VALIDADO Y DISPONIBLE",
+                            text = estadoExamen,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = DarkTeal
@@ -612,13 +624,13 @@ fun ExamenPrincipalCard() {
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Valentina Morales Soto",
+                                text = pacienteNom,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = DarkText
                             )
                             Text(
-                                text = "18.421.902-3",
+                                text = pacienteRutStr,
                                 fontSize = 11.sp,
                                 color = SubtitleText
                             )
@@ -652,7 +664,7 @@ fun ExamenPrincipalCard() {
                             color = LightCyan
                         ) {
                             Text(
-                                text = "Bilateral (OD e OI)",
+                                text = ojoEval,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = DarkTeal,
@@ -759,7 +771,7 @@ fun ExamenPrincipalCard() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Espesor retiniano macular conservado en ambos ojos. Sin evidencia de edema quístico macular ni desprendimiento seroso. Complejo de células ganglionares dentro de límites de referencia normales para el grupo etario.",
+                    text = observacionExamen,
                     fontSize = 13.sp,
                     color = DarkText,
                     lineHeight = 18.sp,

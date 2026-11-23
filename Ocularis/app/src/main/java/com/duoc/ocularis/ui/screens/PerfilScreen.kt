@@ -1,6 +1,7 @@
 package com.duoc.ocularis.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,20 +27,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.R
-import com.duoc.ocularis.ui.theme.OcularisTheme
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
 
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val LightCyanBg = Color(0xFFEBF7F7)
-private val SoftCardBg = Color(0xFFF3FAF9)
-private val DarkText = Color(0xFF112929)
-private val SubtitleText = Color(0xFF527173)
-private val GreenActive = Color(0xFF10A37F)
-private val GreenActiveBg = Color(0xFFE2F7F2)
-private val RedLogoutBg = Color(0xFFFFEBEB)
-private val RedLogoutText = Color(0xFFC64141)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
     vm: AppViewModel? = null,
@@ -47,6 +38,7 @@ fun PerfilScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
 
     // Estados interactivos
     val doctorNombre = vm?.usuario ?: "Dr. Roberto Silva Morales"
@@ -59,55 +51,46 @@ fun PerfilScreen(
 
     var notifExamenes by remember { mutableStateOf(true) }
     var accesoPacs by remember { mutableStateOf(true) }
-    var contrasteClinico by remember { mutableStateOf(false) }
+    val isHighContrast by vm?.isHighContrast?.collectAsState() ?: remember { mutableStateOf(false) }
+    val textScale by vm?.textScaleFactor?.collectAsState() ?: remember { mutableStateOf(1.0f) }
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DarkTeal)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.size(36.dp)
-                    ) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Perfil del Especialista",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkTeal
+                        )
+                        Text(
+                            text = "Ocularis Oftalmología",
+                            fontSize = 12.sp,
+                            color = GrayText
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = DarkTeal
                         )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Perfil",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+                },
+                actions = {
+                    Image(
+                        painter = painterResource(id = R.drawable.isotipo),
+                        contentDescription = "Isotipo",
+                        modifier = Modifier.size(36.dp)
                     )
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.drawable.isotipo),
-                            contentDescription = "Isotipo",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
+                    Spacer(modifier = Modifier.width(16.dp))
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
         },
         containerColor = LightCyanBg
     ) { innerPadding ->
@@ -148,8 +131,10 @@ fun PerfilScreen(
                     onNotifChange = { notifExamenes = it },
                     accesoPacs = accesoPacs,
                     onPacsChange = { accesoPacs = it },
-                    contrasteClinico = contrasteClinico,
-                    onContrasteChange = { contrasteClinico = it }
+                    contrasteClinico = isHighContrast,
+                    onContrasteChange = { vm?.setHighContrast(it) },
+                    textScale = textScale,
+                    onTextScaleChange = { vm?.setTextScaleFactor(it) }
                 )
             }
 
@@ -162,7 +147,7 @@ fun PerfilScreen(
                     onSoporte = {
                         Toast.makeText(context, "Conectando con Soporte Técnico Clínico", Toast.LENGTH_SHORT).show()
                     },
-                    onCerrarSesion = onLogout
+                    onCerrarSesion = { mostrarDialogoLogout = true }
                 )
             }
 
@@ -182,6 +167,12 @@ fun PerfilScreen(
             item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
+
+    CerrarSesionDialog(
+        visible = mostrarDialogoLogout,
+        onDismiss = { mostrarDialogoLogout = false },
+        onConfirm = onLogout
+    )
 }
 
 @Composable
@@ -634,7 +625,9 @@ fun PreferenciasConsultaCard(
     accesoPacs: Boolean,
     onPacsChange: (Boolean) -> Unit,
     contrasteClinico: Boolean,
-    onContrasteChange: (Boolean) -> Unit
+    onContrasteChange: (Boolean) -> Unit,
+    textScale: Float = 1.0f,
+    onTextScaleChange: (Float) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -652,7 +645,7 @@ fun PreferenciasConsultaCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Preferencias de Consulta",
+                    text = "Preferencias de Accesibilidad y Consulta",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = DarkText
@@ -686,11 +679,76 @@ fun PreferenciasConsultaCard(
             // Toggle 3
             PreferenciasToggleRow(
                 icono = Icons.Default.Contrast,
-                titulo = "Contraste Clínico Diagnóstico",
-                subtitulo = "Calibrado para angiografía con fluoresceína",
+                titulo = "Alto Contraste Clínico (DataStore)",
+                subtitulo = "Modo de contraste mejorado para lecturas diagnósticas",
                 checked = contrasteClinico,
                 onCheckedChange = onContrasteChange
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = LightCyan)
+
+            // Selector de Tamaños de Texto (DataStore)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.FormatSize,
+                        contentDescription = null,
+                        tint = DarkTeal,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Tamaño de Letra (DataStore)",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DarkText
+                        )
+                        Text(
+                            text = "Ajusta la escala de texto en la aplicación",
+                            fontSize = 12.sp,
+                            color = GrayText
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = textScale == 1.0f,
+                    onClick = { onTextScaleChange(1.0f) },
+                    label = { Text("Normal (1.0x)", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DarkTeal,
+                        selectedLabelColor = Color.White
+                    )
+                )
+                FilterChip(
+                    selected = textScale == 1.25f,
+                    onClick = { onTextScaleChange(1.25f) },
+                    label = { Text("Grande (1.25x)", fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DarkTeal,
+                        selectedLabelColor = Color.White
+                    )
+                )
+                FilterChip(
+                    selected = textScale == 1.5f,
+                    onClick = { onTextScaleChange(1.5f) },
+                    label = { Text("Extra Grande (1.5x)", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = DarkTeal,
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
         }
     }
 }

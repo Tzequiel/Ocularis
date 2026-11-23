@@ -21,14 +21,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
 import com.duoc.ocularis.data.entity.EspecialistaEntity
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
-
-// Paleta de Colores Oficial
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val GrayText = Color(0xFF666666)
-private val BackgroundColor = Color(0xFFFAFAFA)
+import kotlinx.coroutines.flow.flowOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,13 +38,27 @@ fun PacienteHomeScreen(
 ) {
     val context = LocalContext.current
     var mostrarModalSolicitud by remember { mutableStateOf(false) }
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
 
-    // Estado persistente/reactivo de la Próxima Cita agendada
-    var proximaCitaTipo by remember { mutableStateOf("Control de Glaucoma & OCT Macular") }
-    var proximaCitaEspecialista by remember { mutableStateOf("Dr. Fernando Mendoza (Glaucomatólogo)") }
-    var proximaCitaFechaHora by remember { mutableStateOf("Jueves 24 de Octubre - 10:30 hrs") }
-    var proximaCitaLugar by remember { mutableStateOf("Sede Central Ocularis - Consulta 302") }
-    var proximaCitaEstado by remember { mutableStateOf("CONFIRMADA") }
+    // Obtener pacientes, consultas y exámenes desde la base de datos de manera reactiva y filtrarlos por el paciente logueado
+    val pacientesDB by (vm?.pacientes ?: flowOf(emptyList())).collectAsState(initial = emptyList())
+    val consultasDB by (vm?.consultas ?: flowOf(emptyList())).collectAsState(initial = emptyList())
+    val examenesDB by (vm?.examenes ?: flowOf(emptyList())).collectAsState(initial = emptyList())
+
+    val pacienteActual = pacientesDB.find { it.nombre.equals(nombrePaciente, ignoreCase = true) }
+    val pacienteRut = pacienteActual?.rut ?: pacientesDB.firstOrNull()?.rut ?: "18.421.902-3"
+
+    val pacienteConsultas = consultasDB.filter { it.pacienteRut.equals(pacienteRut, ignoreCase = true) }
+    val pacienteExamenes = examenesDB.filter { it.pacienteRut.equals(pacienteRut, ignoreCase = true) || it.pacienteNombre.equals(nombrePaciente, ignoreCase = true) }
+
+    val ultimaConsulta = pacienteConsultas.firstOrNull()
+    val ultimoExamen = pacienteExamenes.firstOrNull()
+
+    val proximaCitaTipo = ultimaConsulta?.tipoAtencion ?: ultimoExamen?.tipoExamen ?: "Sin citas pendientes"
+    val proximaCitaEspecialista = ultimaConsulta?.medicoNombre ?: "Pendiente de asignación"
+    val proximaCitaFechaHora = ultimaConsulta?.fechaHora ?: ultimoExamen?.fecha ?: "Agende una hora"
+    val proximaCitaLugar = if (ultimaConsulta != null || ultimoExamen != null) "Sede Central Ocularis" else "Portal Paciente"
+    val proximaCitaEstado = if (ultimaConsulta != null || ultimoExamen != null) "CONFIRMADA" else "DISPONIBLE"
 
     // Obtener la lista de especialistas desde Room DB o lista por defecto si está vacía
     val especialistasDB by vm?.especialistas?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
@@ -116,7 +127,7 @@ fun PacienteHomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onLogout) {
+                    IconButton(onClick = { mostrarDialogoLogout = true }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "Cerrar Sesión",
@@ -425,23 +436,45 @@ fun PacienteHomeScreen(
         }
     }
 
+    // Diálogo de Confirmación para Cerrar Sesión
+    CerrarSesionDialog(
+        visible = mostrarDialogoLogout,
+        onDismiss = { mostrarDialogoLogout = false },
+        onConfirm = onLogout
+    )
+
     // Modal para solicitar nueva hora con Selección de Especialista y Horario
     if (mostrarModalSolicitud) {
         ModalSolicitarHora(
             listaEspecialistas = listaEspecialistas,
             onDismiss = { mostrarModalSolicitud = false },
             onConfirmarCita = { tipo, especialista, fechaHora, lugar ->
-                proximaCitaTipo = tipo
-                proximaCitaEspecialista = "${especialista.nombre} (${especialista.especialidad})"
-                proximaCitaFechaHora = fechaHora
-                proximaCitaLugar = "${especialista.sede} - ${especialista.boxConsulta}"
-                proximaCitaEstado = "CONFIRMADA"
+                val nuevaConsulta = ConsultaMedicaEntity(
+                    id = "CON-${System.currentTimeMillis().toString().takeLast(6)}",
+                    pacienteRut = pacienteRut,
+                    medicoNombre = especialista.nombre,
+                    fechaHora = fechaHora,
+                    tipoAtencion = tipo,
+                    motivoConsulta = tipo,
+                    diagnostico = "En evaluación",
+                    indicacionesReceta = "Pendiente de indicación médica"
+                )
+                if (vm != null) {
+                    vm.registrarConsultaYExamen(nuevaConsulta, null) {
+                        Toast.makeText(
+                            context,
+                            "¡Hora agendada exitosamente con ${especialista.nombre} para el $fechaHora!",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        context,
+                        "¡Hora agendada con éxito!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
                 mostrarModalSolicitud = false
-                Toast.makeText(
-                    context,
-                    "¡Hora agendada exitosamente con ${especialista.nombre} para el $fechaHora!",
-                    Toast.LENGTH_LONG
-                ).show()
             }
         )
     }

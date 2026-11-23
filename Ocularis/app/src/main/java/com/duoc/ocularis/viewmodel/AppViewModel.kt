@@ -1,11 +1,13 @@
 package com.duoc.ocularis.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.duoc.ocularis.data.AccessibilityPreferencesManager
 import com.duoc.ocularis.data.OcularisRepository
 import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
 import com.duoc.ocularis.data.entity.EspecialistaEntity
@@ -20,12 +22,72 @@ import com.duoc.ocularis.model.RolUsuario
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+enum class SyncStatus {
+    SINCRONIZADO,
+    SINCRONIZANDO,
+    OFFLINE
+}
+
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = OcularisRepository()
+    private val prefs = application.getSharedPreferences("ocularis_session", Context.MODE_PRIVATE)
+    private val accessibilityPrefsManager = AccessibilityPreferencesManager(application)
 
-    // Estado de Usuario Logueado y Rol
-    var usuario by mutableStateOf("Dr. Roberto Silva")
-    var rolActual by mutableStateOf(RolUsuario.ESPECIALISTA)
+    // Estado de Accesibilidad persistido en DataStore
+    val isHighContrast: StateFlow<Boolean> = accessibilityPrefsManager.highContrastFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val textScaleFactor: StateFlow<Float> = accessibilityPrefsManager.textScaleFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 1.0f)
+
+    // Estado de Sincronización
+    var syncStatus by mutableStateOf(SyncStatus.SINCRONIZADO)
+        private set
+
+    fun setHighContrast(enabled: Boolean) {
+        viewModelScope.launch {
+            accessibilityPrefsManager.setHighContrast(enabled)
+        }
+    }
+
+    fun setTextScaleFactor(scale: Float) {
+        viewModelScope.launch {
+            accessibilityPrefsManager.setTextScale(scale)
+        }
+    }
+
+    fun actualizarEstadoSincronizacion(status: SyncStatus) {
+        syncStatus = status
+    }
+
+    // Estado de Usuario Logueado y Rol con persistencia local
+    var isLoggedIn by mutableStateOf(prefs.getBoolean("is_logged_in", false))
+        private set
+
+    var usuario by mutableStateOf(prefs.getString("saved_user_name", null) ?: "Dr. Roberto Silva")
+    var rolActual by mutableStateOf(
+        try {
+            RolUsuario.valueOf(prefs.getString("saved_role", null) ?: RolUsuario.ESPECIALISTA.name)
+        } catch (e: Exception) {
+            RolUsuario.ESPECIALISTA
+        }
+    )
+
+    fun guardarSesion(nombre: String, rol: RolUsuario) {
+        usuario = nombre
+        rolActual = rol
+        isLoggedIn = true
+        prefs.edit()
+            .putBoolean("is_logged_in", true)
+            .putString("saved_role", rol.name)
+            .putString("saved_user_name", nombre)
+            .apply()
+    }
+
+    fun cerrarSesion() {
+        isLoggedIn = false
+        prefs.edit().clear().apply()
+    }
 
     fun seleccionarRol(rol: RolUsuario) {
         rolActual = rol
@@ -34,6 +96,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             RolUsuario.ESPECIALISTA -> "Dr. Roberto Silva"
             RolUsuario.PACIENTE -> "Carmen Rosa Fernández"
         }
+        guardarSesion(usuario, rol)
     }
 
     // Autenticación con InsForge y obtención de rol desde la Base de Datos
@@ -105,6 +168,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     rolActual = userRol
+                    guardarSesion(usuario, userRol)
                     onSuccess(userRol)
                 } else {
                     val rawError = response.errorBody()?.string() ?: ""
@@ -209,6 +273,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val especialistas: StateFlow<List<EspecialistaEntity>> = repository.allEspecialistas
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val usuarios: StateFlow<List<UsuarioEntity>> = repository.allUsuarios
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // Operaciones de escritura persistente
     fun registrarConsultaYExamen(
         consulta: ConsultaMedicaEntity,
@@ -234,6 +301,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun agregarExamen(examen: ExamenEntity, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             repository.insertExamen(examen)
+            onComplete()
+        }
+    }
+
+    fun eliminarUsuario(emailOrRut: String, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            repository.deleteUsuario(emailOrRut)
             onComplete()
         }
     }

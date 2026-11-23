@@ -1,6 +1,8 @@
 package com.duoc.ocularis.ui.screens
 
 import android.app.DatePickerDialog
+import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,16 +29,12 @@ import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.R
 import com.duoc.ocularis.data.entity.ConsultaMedicaEntity
 import com.duoc.ocularis.data.entity.ExamenEntity
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Calendar
 
-// Paleta de colores de Ocularis
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val GrayText = Color(0xFF666666)
-private val LightGrayText = Color(0xFF999999)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AtencionScreen(
     vm: AppViewModel = viewModel(),
@@ -44,12 +43,15 @@ fun AtencionScreen(
 ) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
+    val pacientesDb by vm.pacientes.collectAsState()
 
     // --- ESTADOS INTERACTIVOS DE LA PANTALLA ---
-    var rutBusqueda by remember { mutableStateOf("18.421.902-3") }
-    var pacienteNombre by remember { mutableStateOf("Valentina Morales Soto") }
-    var pacienteFicha by remember { mutableStateOf("Ficha: #OCT-2024-884 · 32 años · Fonasa B") }
-    var pacienteEncontrado by remember { mutableStateOf(true) }
+    var busquedaPacienteQuery by remember { mutableStateOf("") }
+    var rutBusqueda by remember { mutableStateOf("") }
+    var pacienteNombre by remember { mutableStateOf("") }
+    var pacienteFicha by remember { mutableStateOf("") }
+    var pacienteEncontrado by remember { mutableStateOf(false) }
+    var expandedPaciente by remember { mutableStateOf(false) }
 
     // Selector de Fecha
     var fechaAtencion by remember { mutableStateOf("Hoy, 24 de Octubre 2024") }
@@ -88,51 +90,41 @@ fun AtencionScreen(
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DarkTeal)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.size(36.dp)
-                    ) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Nueva Atención",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkTeal
+                        )
+                        Text(
+                            text = "Ocularis Oftalmología",
+                            fontSize = 12.sp,
+                            color = GrayText
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = DarkTeal
                         )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Nueva Atención",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+                },
+                actions = {
+                    Image(
+                        painter = painterResource(id = R.drawable.isotipo),
+                        contentDescription = "Isotipo",
+                        modifier = Modifier.size(36.dp)
                     )
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.drawable.isotipo),
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
+                    Spacer(modifier = Modifier.width(16.dp))
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
         },
         containerColor = Color.White
     ) { paddingValues ->
@@ -193,52 +185,103 @@ fun AtencionScreen(
 
             // --- Formulario Interactivos ---
 
-            // 1. RUT editable con búsqueda
-            FormLabel(Icons.Default.Badge, "RUT o N° de Ficha del Paciente *")
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = rutBusqueda,
-                onValueChange = {
-                    rutBusqueda = it
-                    pacienteEncontrado = false
-                },
-                placeholder = { Text("Ej: 18.421.902-3") },
-                trailingIcon = {
-                    IconButton(onClick = {
-                        if (rutBusqueda.isNotBlank()) {
-                            pacienteNombre = if (rutBusqueda.contains("18.421.902")) "Valentina Morales Soto" else "Paciente Consultado"
-                            pacienteFicha = "Ficha: #OCT-2024-${(100..999).random()} · 32 años · Fonasa B"
-                            pacienteEncontrado = true
+            // 1. Buscador Autocomplete de Pacientes
+            FormLabel(Icons.Default.Badge, "Buscar y Seleccionar Paciente de la BD *")
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = busquedaPacienteQuery,
+                    onValueChange = { query ->
+                        busquedaPacienteQuery = query
+                        expandedPaciente = query.isNotBlank()
+                    },
+                    placeholder = { Text("Escribe nombre, RUT o ficha del paciente...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = DarkTeal) },
+                    trailingIcon = {
+                        if (busquedaPacienteQuery.isNotBlank()) {
+                            IconButton(onClick = {
+                                busquedaPacienteQuery = ""
+                                pacienteEncontrado = false
+                            }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = GrayText)
+                            }
                         }
-                    }) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = LightCyan,
-                            modifier = Modifier.size(36.dp)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = DarkTeal,
+                        unfocusedBorderColor = LightCyan,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
+                    ),
+                    singleLine = true
+                )
+
+                val filteredPacientes = pacientesDb.filter { p ->
+                    busquedaPacienteQuery.isBlank() ||
+                    p.nombre.contains(busquedaPacienteQuery, ignoreCase = true) ||
+                    p.rut.contains(busquedaPacienteQuery, ignoreCase = true) ||
+                    p.ficha.contains(busquedaPacienteQuery, ignoreCase = true)
+                }
+
+                if (expandedPaciente && filteredPacientes.isNotEmpty()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 64.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White,
+                        shadowElevation = 6.dp,
+                        border = BorderStroke(1.dp, LightCyan)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp)
+                                .verticalScroll(rememberScrollState())
+                                .padding(4.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.PersonSearch,
-                                contentDescription = "Buscar",
-                                tint = DarkTeal,
-                                modifier = Modifier.padding(6.dp)
-                            )
+                            filteredPacientes.forEach { paciente ->
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            busquedaPacienteQuery = paciente.nombre
+                                            rutBusqueda = paciente.rut
+                                            pacienteNombre = paciente.nombre
+                                            pacienteFicha = "Ficha: ${paciente.ficha} · ${paciente.edad} años · ${paciente.prevision}"
+                                            pacienteEncontrado = true
+                                            expandedPaciente = false
+                                        },
+                                    color = Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(
+                                            text = paciente.nombre,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = Color.Black
+                                        )
+                                        Text(
+                                            text = "RUT: ${paciente.rut} • Ficha: ${paciente.ficha}",
+                                            fontSize = 12.sp,
+                                            color = GrayText
+                                        )
+                                    }
+                                }
+                                HorizontalDivider(color = BackgroundColor)
+                            }
                         }
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = DarkTeal,
-                    unfocusedBorderColor = LightCyan,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                ),
-                singleLine = true
-            )
+                }
+            }
 
             if (pacienteEncontrado) {
                 Spacer(modifier = Modifier.height(8.dp))
-                // Tarjeta de Paciente Encontrado
+                // Tarjeta de Paciente Seleccionado
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = LightCyan,
@@ -262,7 +305,7 @@ fun AtencionScreen(
                     .clickable { datePickerDialog.show() },
                 shape = RoundedCornerShape(12.dp),
                 color = Color.White,
-                border = androidx.compose.foundation.BorderStroke(1.dp, LightCyan)
+                border = BorderStroke(1.dp, LightCyan)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -285,7 +328,7 @@ fun AtencionScreen(
                         .clickable { expandedSucursal = true },
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LightCyan)
+                    border = BorderStroke(1.dp, LightCyan)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -325,7 +368,7 @@ fun AtencionScreen(
                         .clickable { expandedMedico = true },
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, LightCyan)
+                    border = BorderStroke(1.dp, LightCyan)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -366,7 +409,7 @@ fun AtencionScreen(
                     Text(
                         text = "Ej. Control glaucoma, agudeza visual, campimetría computarizada...",
                         fontSize = 14.sp,
-                        color = LightGrayText
+                        color = Color(0xFF999999)
                     )
                 },
                 modifier = Modifier
@@ -401,6 +444,10 @@ fun AtencionScreen(
             // --- Botones Inferiores ---
             Button(
                 onClick = {
+                    if (rutBusqueda.isBlank()) {
+                        Toast.makeText(context, "Por favor seleccione un paciente válido de la base de datos", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
                     val consultaId = "CON-${System.currentTimeMillis()}"
                     val examenId = "EX-${System.currentTimeMillis()}"
                     vm.registrarConsultaYExamen(

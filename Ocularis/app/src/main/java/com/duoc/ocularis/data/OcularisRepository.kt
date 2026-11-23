@@ -22,6 +22,7 @@ class OcularisRepository {
     val allEspecialistas: Flow<List<EspecialistaEntity>> = _especialistasState.asStateFlow()
 
     private val _usuariosState = MutableStateFlow<List<UsuarioEntity>>(emptyList())
+    val allUsuarios: Flow<List<UsuarioEntity>> = _usuariosState.asStateFlow()
 
     init {
         // Cargar datos semillas iniciales de InsForge API / Script 3.sql
@@ -216,19 +217,15 @@ class OcularisRepository {
 
             // Seed Usuarios (script 3.sql)
             val seedUsuarios = listOf(
-                UsuarioEntity(emailOrRut = "admin@ocularis.cl", passwordHash = "Ocularis2025!", rol = "ADMIN"),
-                UsuarioEntity(emailOrRut = "ad.apellido@hospital.org", passwordHash = "Ocularis2025!", rol = "ADMIN"),
-                UsuarioEntity(emailOrRut = "dr.silva@ocularis.cl", passwordHash = "Ocularis2025!", rol = "ESPECIALISTA"),
-                UsuarioEntity(emailOrRut = "dr.apellido@hospital.org", passwordHash = "Ocularis2025!", rol = "ESPECIALISTA"),
-                UsuarioEntity(emailOrRut = "valentina.morales@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "carlos.mendoza@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "matias.alarcon@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "elena.rojas@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "andres.sepulveda@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "camila.fuentes@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "gabriel.valenzuela@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "pa.apellido@hospital.org", passwordHash = "Ocularis2025!", rol = "PACIENTE"),
-                UsuarioEntity(emailOrRut = "carmen.fernandez@correo.cl", passwordHash = "Ocularis2025!", rol = "PACIENTE")
+                UsuarioEntity(emailOrRut = "admin@ocularis.cl", passwordHash = "", rol = "ADMIN"),
+                UsuarioEntity(emailOrRut = "dr.silva@ocularis.cl", passwordHash = "", rol = "ESPECIALISTA"),
+                UsuarioEntity(emailOrRut = "valentina.morales@correo.cl", passwordHash = "", rol = "PACIENTE"),
+                UsuarioEntity(emailOrRut = "carlos.mendoza@correo.cl", passwordHash = "", rol = "PACIENTE"),
+                UsuarioEntity(emailOrRut = "matias.alarcon@correo.cl", passwordHash = "", rol = "PACIENTE"),
+                UsuarioEntity(emailOrRut = "elena.rojas@correo.cl", passwordHash = "", rol = "PACIENTE"),
+                UsuarioEntity(emailOrRut = "andres.sepulveda@correo.cl", passwordHash = "", rol = "PACIENTE"),
+                UsuarioEntity(emailOrRut = "camila.fuentes@correo.cl", passwordHash = "", rol = "PACIENTE"),
+                UsuarioEntity(emailOrRut = "gabriel.valenzuela@correo.cl", passwordHash = "", rol = "PACIENTE")
             )
             _usuariosState.value = seedUsuarios
         } catch (e: Exception) {
@@ -310,6 +307,12 @@ class OcularisRepository {
         val current = _usuariosState.value.toMutableList()
         current.removeAll { it.emailOrRut.equals(usuario.emailOrRut, ignoreCase = true) }
         current.add(0, usuario)
+        _usuariosState.value = current
+    }
+
+    suspend fun deleteUsuario(emailOrRut: String) {
+        val current = _usuariosState.value.toMutableList()
+        current.removeAll { it.emailOrRut.equals(emailOrRut, ignoreCase = true) }
         _usuariosState.value = current
     }
 }

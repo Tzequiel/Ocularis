@@ -2,9 +2,7 @@ package com.duoc.ocularis.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,7 +20,9 @@ import com.duoc.ocularis.ui.screens.DetalleExamenScreen
 import com.duoc.ocularis.ui.screens.DetallePacienteScreen
 import com.duoc.ocularis.ui.screens.GestionUsuariosScreen
 import com.duoc.ocularis.ui.screens.HistorialScreen
+import com.duoc.ocularis.model.RolUsuario
 import com.duoc.ocularis.ui.screens.HomeScreen
+import com.duoc.ocularis.ui.screens.HoraMedicaScreen
 import com.duoc.ocularis.ui.screens.ListaExamenesScreen
 import com.duoc.ocularis.ui.screens.LoginScreen
 import com.duoc.ocularis.ui.screens.MisExamenesScreen
@@ -42,7 +42,17 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Rutas donde SÍ queremos que se vea la barra de navegación del Especialista
-    val rutasConBarraInferior = listOf("home", "historial", "perfil")
+    val rutasConBarraInferior = listOf("home", "pacientes", "perfil")
+
+    val startDestination = if (vm.isLoggedIn) {
+        when (vm.rolActual) {
+            RolUsuario.ADMIN -> Screen.AdminDashboard.route
+            RolUsuario.PACIENTE -> Screen.PacienteHome.route
+            RolUsuario.ESPECIALISTA -> "home"
+        }
+    } else {
+        Screen.Login.route
+    }
 
     Scaffold(
         bottomBar = {
@@ -63,7 +73,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Login.route,
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
             // Ruta 1: Login con validación exclusiva InsForge y roles de Base de Datos
@@ -95,6 +105,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                         navController.navigate(Screen.GestionUsuarios.route)
                     },
                     onLogout = {
+                        vm.cerrarSesion()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -119,6 +130,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                         navController.navigate(Screen.MisExamenes.route)
                     },
                     onLogout = {
+                        vm.cerrarSesion()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -131,6 +143,9 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
             composable(route = Screen.MisExamenes.route) {
                 MisExamenesScreen(
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetalleExamen = { examenId ->
+                        navController.navigate(Screen.DetalleExamen.createRoute(examenId))
+                    },
                     vm = vm
                 )
             }
@@ -142,7 +157,22 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 HomeScreen(
                     onNavigateToNuevaAtencion = { navController.navigate(route = "nueva_atencion") },
                     onNavigateToDetalle = { idPaciente ->
-                        navController.navigate(Screen.DetallePaciente.createRoute(idPaciente))
+                        navController.navigate(Screen.HoraMedica.createRoute(idPaciente))
+                    }
+                )
+            }
+
+            // Ruta 6.4: Consulta / Hora Médica Activa (Especialista)
+            composable(
+                route = Screen.HoraMedica.route
+            ) { backStackEntry ->
+                val pacienteId = backStackEntry.arguments?.getString("pacienteId") ?: "OC-8921"
+                HoraMedicaScreen(
+                    pacienteId = pacienteId,
+                    vm = vm,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToDetallePaciente = { idFicha ->
+                        navController.navigate(Screen.DetallePaciente.createRoute(idFicha))
                     }
                 )
             }
@@ -181,9 +211,10 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
             composable(
                 route = Screen.DetalleExamen.route
             ) { backStackEntry ->
-                val examenId = backStackEntry.arguments?.getString("examenId") ?: "OC-8921"
+                val examenId = backStackEntry.arguments?.getString("examenId") ?: "EX-0001"
                 DetalleExamenScreen(
                     examenId = examenId,
+                    vm = vm,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -196,10 +227,13 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 8: Historial de Atenciones
-            composable(route = "historial") {
+            // Ruta 8: Directorio de Pacientes
+            composable(route = "pacientes") {
                 HistorialScreen(
-                    onNavigateToDetalle = { idExploracion -> }
+                    vm = vm,
+                    onNavigateToDetalle = { idPaciente ->
+                        navController.navigate(Screen.DetallePaciente.createRoute(idPaciente))
+                    }
                 )
             }
 
@@ -208,6 +242,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 PerfilScreen(
                     vm = vm,
                     onLogout = {
+                        vm.cerrarSesion()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -235,8 +270,8 @@ fun AppBottomNavigation(
         tonalElevation = 8.dp
     ) {
         NavigationBarItem(
-            icon = { Icon(Icons.Default.People, contentDescription = null) },
-            label = { Text("Pacientes") },
+            icon = { Icon(Icons.Default.Schedule, contentDescription = null) },
+            label = { Text("Agenda") },
             selected = currentRoute == "home",
             onClick = { onNavigate("home") },
             colors = NavigationBarItemDefaults.colors(
@@ -246,10 +281,10 @@ fun AppBottomNavigation(
             )
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Folder, contentDescription = null) },
-            label = { Text("Historial") },
-            selected = currentRoute == "historial",
-            onClick = { onNavigate("historial") },
+            icon = { Icon(Icons.Default.People, contentDescription = null) },
+            label = { Text("Pacientes") },
+            selected = currentRoute == "pacientes",
+            onClick = { onNavigate("pacientes") },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = DarkTeal,
                 selectedTextColor = DarkTeal,

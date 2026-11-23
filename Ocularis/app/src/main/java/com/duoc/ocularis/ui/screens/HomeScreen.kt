@@ -22,14 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.duoc.ocularis.R
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
-
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val LightPink = Color(0xFFFFEBEB)
-private val DarkPinkText = Color(0xFFC64141)
-private val GrayText = Color(0xFF666666)
-private val BackgroundColor = Color(0xFFFAFAFA)
+import com.duoc.ocularis.viewmodel.SyncStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,16 +35,26 @@ fun HomeScreen(
 ) {
     val pacientesDb by vm.pacientes.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var mostrarSoloPendientes by remember { mutableStateOf(true) }
 
     val filteredPacientesDb = pacientesDb.filter { p ->
-        searchQuery.isBlank() ||
-        p.nombre.contains(searchQuery, ignoreCase = true) ||
-        p.rut.contains(searchQuery, ignoreCase = true) ||
-        p.ficha.contains(searchQuery, ignoreCase = true)
+        val coincideBusqueda = searchQuery.isBlank() ||
+            p.nombre.contains(searchQuery, ignoreCase = true) ||
+            p.rut.contains(searchQuery, ignoreCase = true) ||
+            p.ficha.contains(searchQuery, ignoreCase = true)
+
+        val esPendienteOEnCurso = !p.estado.contains("Completado", ignoreCase = true) &&
+                                  !p.estado.contains("Validado", ignoreCase = true)
+
+        if (mostrarSoloPendientes) {
+            coincideBusqueda && esPendienteOEnCurso
+        } else {
+            coincideBusqueda
+        }
     }
 
     Scaffold(
-        topBar = { HomeTopBar() },
+        topBar = { HomeTopBar(syncStatus = vm.syncStatus) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = { Text("Nueva Atención", color = Color.White, fontWeight = FontWeight.SemiBold) },
@@ -76,20 +81,47 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = mostrarSoloPendientes,
+                        onClick = { mostrarSoloPendientes = true },
+                        label = { Text("Agenda Pendiente") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DarkTeal,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                    FilterChip(
+                        selected = !mostrarSoloPendientes,
+                        onClick = { mostrarSoloPendientes = false },
+                        label = { Text("Todos (${pacientesDb.size})") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = DarkTeal,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            text = "Pacientes Recientes",
+                            text = if (mostrarSoloPendientes) "Agenda y Atenciones del Día" else "Todos los Pacientes",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "(${filteredPacientesDb.size} activos en BD)",
+                            text = "(${filteredPacientesDb.size} en lista)",
                             fontSize = 12.sp,
                             color = DarkTeal,
                             fontWeight = FontWeight.Medium,
@@ -113,7 +145,7 @@ fun HomeScreen(
                     initials = initials,
                     name = p.nombre,
                     rut = p.rut,
-                    id = p.ficha,
+                    id = p.rut,
                     status = p.estado,
                     examDetails = "${p.fechaUltimoExamen} — ${p.ultimoExamen}",
                     isSuccess = isSuccess,
@@ -131,56 +163,37 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopBar() {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(DarkTeal)
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Pacientes Inicio",
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            IconButton(onClick = { }) {
-                Icon(
-                    imageVector = Icons.Default.NotificationsNone,
-                    contentDescription = "Notificaciones",
-                    tint = Color.White,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(LightCyan)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(id = R.drawable.isotipo),
-                    contentDescription = "Isotipo Ocularis",
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+fun HomeTopBar(syncStatus: SyncStatus = SyncStatus.SINCRONIZADO) {
+    TopAppBar(
+        title = {
+            Column {
                 Text(
-                    text = "Consulta Oftalmológica Central (Room DB)",
-                    color = DarkTeal,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    text = "Agenda",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkTeal
+                )
+                Text(
+                    text = "Ocularis Oftalmología",
+                    fontSize = 12.sp,
+                    color = GrayText
                 )
             }
-        }
-    }
+        },
+        actions = {
+            com.duoc.ocularis.ui.components.SyncIndicator(status = syncStatus)
+            Spacer(modifier = Modifier.width(8.dp))
+            Image(
+                painter = painterResource(id = R.drawable.isotipo),
+                contentDescription = "Isotipo",
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+    )
 }
 
 @Composable
@@ -219,7 +232,8 @@ fun PatientCard(paciente: MockPaciente, onNavigateToDetalle: (String) -> Unit) {
             .padding(horizontal = 20.dp, vertical = 8.dp)
             .clickable { onNavigateToDetalle(paciente.id) },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, DarkTeal.copy(alpha = 0.2f))
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.width(6.dp).fillMaxHeight().defaultMinSize(minHeight = 120.dp).background(if (paciente.isSuccess) LightCyan else LightPink))
@@ -240,11 +254,16 @@ fun PatientCard(paciente: MockPaciente, onNavigateToDetalle: (String) -> Unit) {
                             }
                         }
                     }
+                    val shortStatus = when {
+                        paciente.status.contains("Completado", ignoreCase = true) || paciente.status.contains("Validado", ignoreCase = true) -> "Completo"
+                        paciente.status.contains("Pendiente", ignoreCase = true) -> "Pendiente"
+                        else -> "Al día"
+                    }
                     Surface(shape = RoundedCornerShape(50), color = if (paciente.isSuccess) LightCyan else LightPink) {
                         Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = if (paciente.isSuccess) Icons.Default.CheckCircleOutline else Icons.Default.MoreHoriz, contentDescription = null, tint = if (paciente.isSuccess) DarkTeal else DarkPinkText, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = paciente.status, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (paciente.isSuccess) DarkTeal else DarkPinkText)
+                            Text(text = shortStatus, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (paciente.isSuccess) DarkTeal else DarkPinkText)
                         }
                     }
                 }
@@ -269,7 +288,8 @@ fun StatsCard() {
     Card(
         modifier = Modifier.fillMaxWidth().padding(20.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = LightCyan)
+        colors = CardDefaults.cardColors(containerColor = LightCyan),
+        border = BorderStroke(1.dp, DarkTeal.copy(alpha = 0.3f))
     ) {
         Row(modifier = Modifier.padding(20.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {

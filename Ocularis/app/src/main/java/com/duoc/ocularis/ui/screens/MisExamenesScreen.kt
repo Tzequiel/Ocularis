@@ -1,6 +1,7 @@
 package com.duoc.ocularis.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,13 +22,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
-
-// Paleta de Colores solicitada
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val GrayText = Color(0xFF666666)
-private val BackgroundColor = Color(0xFFFAFAFA)
+import kotlinx.coroutines.flow.flowOf
 
 data class ExamenPacienteUiModel(
     val id: String,
@@ -42,27 +39,26 @@ data class ExamenPacienteUiModel(
 @Composable
 fun MisExamenesScreen(
     onNavigateBack: () -> Unit = {},
+    onNavigateToDetalleExamen: (String) -> Unit = {},
     vm: AppViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
     // Conexión en tiempo real a la Base de Datos InsForge desde AppViewModel
-    val examenesDB by vm?.examenes?.collectAsState() ?: remember { mutableStateOf(emptyList()) }
+    val examenesDB by (vm?.examenes ?: flowOf(emptyList())).collectAsState(initial = emptyList())
     val usuarioActual = vm?.usuario ?: ""
 
-    // Filtrar los exámenes para mostrar únicamente los 2 exámenes pertenecientes al paciente logueado
+    // Filtrar estrictamente los exámenes pertenecientes al paciente logueado
     val listaExamenes = remember(examenesDB, usuarioActual) {
-        val examenesPaciente = if (usuarioActual.isBlank()) {
-            examenesDB.take(2)
-        } else {
-            val filtrados = examenesDB.filter { ex ->
+        val examenesPaciente = examenesDB.filter { ex ->
+            if (usuarioActual.isBlank()) true
+            else {
                 ex.pacienteRut.equals(usuarioActual, ignoreCase = true) ||
-                        ex.pacienteNombre.contains(usuarioActual, ignoreCase = true) ||
-                        usuarioActual.contains(ex.pacienteNombre, ignoreCase = true) ||
-                        usuarioActual.contains(ex.pacienteRut, ignoreCase = true)
+                ex.pacienteNombre.contains(usuarioActual, ignoreCase = true) ||
+                usuarioActual.contains(ex.pacienteNombre, ignoreCase = true) ||
+                usuarioActual.contains(ex.pacienteRut, ignoreCase = true)
             }
-            if (filtrados.isNotEmpty()) filtrados else examenesDB.take(2)
         }
 
         examenesPaciente.map { ex ->
@@ -215,9 +211,20 @@ fun MisExamenesScreen(
                     items(examenesFiltrados, key = { it.id }) { examen ->
                         ExamenCardItem(
                             examen = examen,
-                            onDescargarPdfClick = {
+                            onCardClick = {
                                 if (examen.estado == "Disponible") {
-                                    examenVerPdf = examen
+                                    onNavigateToDetalleExamen(examen.id)
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "El examen se encuentra pendiente de informe médico.",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            onVerPdfClick = {
+                                if (examen.estado == "Disponible") {
+                                    onNavigateToDetalleExamen(examen.id)
                                 } else {
                                     Toast.makeText(
                                         context,
@@ -310,12 +317,15 @@ fun MisExamenesScreen(
 @Composable
 private fun ExamenCardItem(
     examen: ExamenPacienteUiModel,
-    onDescargarPdfClick: () -> Unit
+    onCardClick: () -> Unit,
+    onVerPdfClick: () -> Unit
 ) {
     val esDisponible = examen.estado == "Disponible"
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCardClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -397,7 +407,7 @@ private fun ExamenCardItem(
                 // Botón/Icono para Descargar / Ver PDF (Requisito Explícito)
                 if (esDisponible) {
                     Button(
-                        onClick = onDescargarPdfClick,
+                        onClick = onVerPdfClick,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = LightCyan, contentColor = DarkTeal),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
@@ -420,7 +430,7 @@ private fun ExamenCardItem(
                     }
                 } else {
                     OutlinedButton(
-                        onClick = onDescargarPdfClick,
+                        onClick = onVerPdfClick,
                         enabled = false,
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
