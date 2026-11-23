@@ -164,7 +164,7 @@ fun HoraMedicaScreen(
 
                     // Botón para acceder al Expediente Completo
                     OutlinedButton(
-                        onClick = { onNavigateToDetallePaciente(fichaPaciente) },
+                        onClick = { onNavigateToDetallePaciente(rutPaciente) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTeal),

@@ -32,20 +32,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.duoc.ocularis.R
 import com.duoc.ocularis.data.entity.PacienteEntity
-import com.duoc.ocularis.ui.theme.OcularisTheme
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
 
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val LightCyanBg = Color(0xFFEBF7F7)
-private val SoftCardBg = Color(0xFFF3FAF9)
-private val DarkText = Color(0xFF112929)
-private val SubtitleText = Color(0xFF527173)
-private val GreenActive = Color(0xFF10A37F)
-private val GreenActiveBg = Color(0xFFE2F7F2)
-private val WarningOrange = Color(0xFFD97706)
-private val WarningOrangeBg = Color(0xFFFEF3C7)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetallePacienteScreen(
     pacienteId: String = "OC-8921",
@@ -57,45 +47,33 @@ fun DetallePacienteScreen(
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DarkTeal)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.size(36.dp)
-                    ) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Detalle del Paciente",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkTeal
+                        )
+                        Text(
+                            text = "Expediente $pacienteId",
+                            fontSize = 12.sp,
+                            color = GrayText
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = DarkTeal
                         )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Detalle del Paciente",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsNone,
-                        contentDescription = "Notificaciones",
-                        tint = Color.White
-                    )
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
         },
         containerColor = LightCyanBg
     ) { innerPadding ->

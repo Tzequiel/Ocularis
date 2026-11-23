@@ -144,7 +144,7 @@ fun HomeScreen(
                     initials = initials,
                     name = p.nombre,
                     rut = p.rut,
-                    id = p.ficha,
+                    id = p.rut,
                     status = p.estado,
                     examDetails = "${p.fechaUltimoExamen} — ${p.ultimoExamen}",
                     isSuccess = isSuccess,
