@@ -420,7 +420,7 @@ private fun UsuarioItemCard(
                         },
                         contentDescription = null,
                         tint = when (usuario.rol) {
-                            RolUsuario.ADMIN -> Color.White
+                            RolUsuario.ADMIN ->Color.White
                             RolUsuario.ESPECIALISTA -> DarkTeal
                             RolUsuario.PACIENTE -> DarkTeal
                         },
