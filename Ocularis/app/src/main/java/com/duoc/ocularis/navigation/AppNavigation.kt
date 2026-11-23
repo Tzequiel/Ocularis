@@ -2,9 +2,7 @@ package com.duoc.ocularis.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,7 +42,7 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
     val currentRoute = navBackStackEntry?.destination?.route
 
     // Rutas donde SÍ queremos que se vea la barra de navegación del Especialista
-    val rutasConBarraInferior = listOf("home", "historial", "perfil")
+    val rutasConBarraInferior = listOf("home", "pacientes", "perfil")
 
     val startDestination = if (vm.isLoggedIn) {
         when (vm.rolActual) {
@@ -229,10 +227,13 @@ fun AppNavigation(vm: AppViewModel = viewModel()) {
                 )
             }
 
-            // Ruta 8: Historial de Atenciones
-            composable(route = "historial") {
+            // Ruta 8: Directorio de Pacientes
+            composable(route = "pacientes") {
                 HistorialScreen(
-                    onNavigateToDetalle = { idExploracion -> }
+                    vm = vm,
+                    onNavigateToDetalle = { idPaciente ->
+                        navController.navigate(Screen.DetallePaciente.createRoute(idPaciente))
+                    }
                 )
             }
 
@@ -269,8 +270,8 @@ fun AppBottomNavigation(
         tonalElevation = 8.dp
     ) {
         NavigationBarItem(
-            icon = { Icon(Icons.Default.People, contentDescription = null) },
-            label = { Text("Pacientes") },
+            icon = { Icon(Icons.Default.Schedule, contentDescription = null) },
+            label = { Text("Agenda") },
             selected = currentRoute == "home",
             onClick = { onNavigate("home") },
             colors = NavigationBarItemDefaults.colors(
@@ -280,10 +281,10 @@ fun AppBottomNavigation(
             )
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Folder, contentDescription = null) },
-            label = { Text("Historial") },
-            selected = currentRoute == "historial",
-            onClick = { onNavigate("historial") },
+            icon = { Icon(Icons.Default.People, contentDescription = null) },
+            label = { Text("Pacientes") },
+            selected = currentRoute == "pacientes",
+            onClick = { onNavigate("pacientes") },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = DarkTeal,
                 selectedTextColor = DarkTeal,

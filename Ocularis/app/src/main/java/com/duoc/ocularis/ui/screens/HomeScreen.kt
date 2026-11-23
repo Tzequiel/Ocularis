@@ -162,56 +162,43 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar() {
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(DarkTeal)
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Pacientes Inicio",
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            IconButton(onClick = { }) {
-                Icon(
-                    imageVector = Icons.Default.NotificationsNone,
-                    contentDescription = "Notificaciones",
-                    tint = Color.White,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(LightCyan)
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(id = R.drawable.isotipo),
-                    contentDescription = "Isotipo Ocularis",
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+    TopAppBar(
+        title = {
+            Column {
                 Text(
-                    text = "Consulta Oftalmológica Central (Room DB)",
-                    color = DarkTeal,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+                    text = "Agenda",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkTeal
+                )
+                Text(
+                    text = "Ocularis Oftalmología",
+                    fontSize = 12.sp,
+                    color = GrayText
                 )
             }
-        }
-    }
+        },
+        actions = {
+            Surface(
+                shape = CircleShape,
+                color = LightCyan,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = R.drawable.isotipo),
+                        contentDescription = "Isotipo",
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+    )
 }
 
 @Composable
