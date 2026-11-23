@@ -1,6 +1,7 @@
 package com.duoc.ocularis.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,20 +27,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.R
-import com.duoc.ocularis.ui.theme.OcularisTheme
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
 
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val LightCyanBg = Color(0xFFEBF7F7)
-private val SoftCardBg = Color(0xFFF3FAF9)
-private val DarkText = Color(0xFF112929)
-private val SubtitleText = Color(0xFF527173)
-private val GreenActive = Color(0xFF10A37F)
-private val GreenActiveBg = Color(0xFFE2F7F2)
-private val RedLogoutBg = Color(0xFFFFEBEB)
-private val RedLogoutText = Color(0xFFC64141)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilScreen(
     vm: AppViewModel? = null,
@@ -64,51 +55,41 @@ fun PerfilScreen(
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DarkTeal)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.size(36.dp)
-                    ) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Perfil del Especialista",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkTeal
+                        )
+                        Text(
+                            text = "Ocularis Oftalmología",
+                            fontSize = 12.sp,
+                            color = GrayText
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = DarkTeal
                         )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Perfil",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+                },
+                actions = {
+                    Image(
+                        painter = painterResource(id = R.drawable.isotipo),
+                        contentDescription = "Isotipo",
+                        modifier = Modifier.size(36.dp)
                     )
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.drawable.isotipo),
-                            contentDescription = "Isotipo",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
+                    Spacer(modifier = Modifier.width(16.dp))
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
         },
         containerColor = LightCyanBg
     ) { innerPadding ->

@@ -32,20 +32,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.duoc.ocularis.R
-import com.duoc.ocularis.ui.theme.OcularisTheme
+import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
 import kotlinx.coroutines.flow.flowOf
-
-private val DarkTeal = Color(0xFF147376)
-private val LightCyan = Color(0xFFD9F8F7)
-private val LightCyanBg = Color(0xFFEBF7F7)
-private val SoftCardBg = Color(0xFFF3FAF9)
-private val DarkText = Color(0xFF112929)
-private val SubtitleText = Color(0xFF527173)
-private val GreenActive = Color(0xFF10A37F)
-private val GreenActiveBg = Color(0xFFE2F7F2)
-private val RedPdfBg = Color(0xFFFFEBEB)
-private val RedPdfText = Color(0xFFC64141)
 
 @Composable
 fun DetalleExamenScreen(
