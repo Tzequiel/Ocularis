@@ -182,20 +182,12 @@ fun HomeTopBar() {
             }
         },
         actions = {
-            Surface(
-                shape = CircleShape,
-                color = LightCyan,
+            Image(
+                painter = painterResource(id = R.drawable.isotipo),
+                contentDescription = "Isotipo",
                 modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(id = R.drawable.isotipo),
-                        contentDescription = "Isotipo",
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(8.dp))
+            )
+            Spacer(modifier = Modifier.width(16.dp))
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
     )
@@ -237,7 +229,8 @@ fun PatientCard(paciente: MockPaciente, onNavigateToDetalle: (String) -> Unit) {
             .padding(horizontal = 20.dp, vertical = 8.dp)
             .clickable { onNavigateToDetalle(paciente.id) },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, DarkTeal.copy(alpha = 0.2f))
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             Box(modifier = Modifier.width(6.dp).fillMaxHeight().defaultMinSize(minHeight = 120.dp).background(if (paciente.isSuccess) LightCyan else LightPink))
@@ -292,7 +285,8 @@ fun StatsCard() {
     Card(
         modifier = Modifier.fillMaxWidth().padding(20.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = LightCyan)
+        colors = CardDefaults.cardColors(containerColor = LightCyan),
+        border = BorderStroke(1.dp, DarkTeal.copy(alpha = 0.3f))
     ) {
         Row(modifier = Modifier.padding(20.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Row(verticalAlignment = Alignment.CenterVertically) {

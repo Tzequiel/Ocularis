@@ -1,5 +1,6 @@
 package com.duoc.ocularis.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -58,20 +59,12 @@ fun HistorialScreen(
                     }
                 },
                 actions = {
-                    Surface(
-                        shape = CircleShape,
-                        color = LightCyan,
+                    Image(
+                        painter = painterResource(id = R.drawable.isotipo),
+                        contentDescription = "Isotipo",
                         modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(id = R.drawable.isotipo),
-                                contentDescription = "Isotipo",
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
@@ -131,6 +124,7 @@ fun HistorialScreen(
                                 .clickable { onNavigateToDetalle(paciente.rut) },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, DarkTeal.copy(alpha = 0.2f)),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
                             Row(
