@@ -111,7 +111,7 @@ fun ListaExamenesScreen(
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Lista de Exámenes (BD)",
+                        text = "Lista de Exámenes",
                         color = Color.White,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -43,8 +44,9 @@ fun HomeScreen(
             p.rut.contains(searchQuery, ignoreCase = true) ||
             p.ficha.contains(searchQuery, ignoreCase = true)
 
-        val esPendienteOEnCurso = !p.estado.contains("Completado", ignoreCase = true) &&
-                                  !p.estado.contains("Validado", ignoreCase = true)
+        val isSuccess = p.estado.contains("Completado", ignoreCase = true) ||
+                          p.estado.contains("Validado", ignoreCase = true)
+        val esPendienteOEnCurso = !isSuccess
 
         if (mostrarSoloPendientes) {
             coincideBusqueda && esPendienteOEnCurso
@@ -255,15 +257,14 @@ fun PatientCard(paciente: MockPaciente, onNavigateToDetalle: (String) -> Unit) {
                         }
                     }
                     val shortStatus = when {
-                        paciente.status.contains("Completado", ignoreCase = true) || paciente.status.contains("Validado", ignoreCase = true) -> "Completo"
-                        paciente.status.contains("Pendiente", ignoreCase = true) -> "Pendiente"
-                        else -> "Al día"
+                        paciente.status.contains("Completado", ignoreCase = true) || paciente.status.contains("Validado", ignoreCase = true) -> "Al día"
+                        else -> "Pendiente"
                     }
                     Surface(shape = RoundedCornerShape(50), color = if (paciente.isSuccess) LightCyan else LightPink) {
                         Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = if (paciente.isSuccess) Icons.Default.CheckCircleOutline else Icons.Default.MoreHoriz, contentDescription = null, tint = if (paciente.isSuccess) DarkTeal else DarkPinkText, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(text = shortStatus, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (paciente.isSuccess) DarkTeal else DarkPinkText)
+                            Text(text = shortStatus, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = if (paciente.isSuccess) DarkTeal else DarkPinkText, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
