@@ -29,7 +29,7 @@ enum class SyncStatus {
 }
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = OcularisRepository()
+    private val repository = OcularisRepository(application)
     private val prefs = application.getSharedPreferences("ocularis_session", Context.MODE_PRIVATE)
     private val accessibilityPrefsManager = AccessibilityPreferencesManager(application)
 

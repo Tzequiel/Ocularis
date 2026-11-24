@@ -18,6 +18,9 @@ interface UsuarioDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUsuario(usuario: UsuarioEntity)
 
+    @Query("DELETE FROM usuarios WHERE emailOrRut = :emailOrRut")
+    suspend fun deleteUsuario(emailOrRut: String)
+
     @Query("SELECT * FROM usuarios")
     fun getAllUsuarios(): Flow<List<UsuarioEntity>>
 }
