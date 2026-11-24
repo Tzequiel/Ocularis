@@ -2,7 +2,11 @@ package com.duoc.ocularis.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import android.print.PrintManager
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfDocument
+import android.graphics.pdf.PdfRenderer
+import android.os.Environment
+import android.os.ParcelFileDescriptor
 import android.speech.tts.TextToSpeech
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -23,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -35,7 +40,10 @@ import com.duoc.ocularis.R
 import com.duoc.ocularis.ui.theme.*
 import com.duoc.ocularis.viewmodel.AppViewModel
 import kotlinx.coroutines.flow.flowOf
+import java.io.File
+import java.io.FileOutputStream
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleExamenScreen(
     examenId: String = "EX-001",
@@ -44,6 +52,8 @@ fun DetalleExamenScreen(
 ) {
     val context = LocalContext.current
     var mostrarModalVisor by remember { mutableStateOf(false) }
+    var archivoPdfGenerado by remember { mutableStateOf<File?>(null) }
+    var mostrarVisorPdfRenderer by remember { mutableStateOf(false) }
 
     val examenesDB by (vm?.examenes ?: flowOf(emptyList())).collectAsState(initial = emptyList())
     val examen = examenesDB.find { it.id.equals(examenId, ignoreCase = true) } ?: examenesDB.firstOrNull()
@@ -56,6 +66,12 @@ fun DetalleExamenScreen(
     val pacienteRutStr = examen?.pacienteRut ?: "15.782.110-K"
     val observacionExamen = examen?.observacion.takeIf { !it.isNullOrBlank() } ?: "Sin observaciones clínicas registradas para este estudio."
     val expedienteId = examen?.id ?: examenId
+
+    // Generar PDF automáticamente al cargar el examen
+    LaunchedEffect(expedienteId) {
+        val file = generarYGuardarPdf(context, expedienteId, tituloExamen, pacienteNom, pacienteRutStr, fechaExamen, observacionExamen)
+        archivoPdfGenerado = file
+    }
 
     // Motor de Síntesis de Voz Nativo (TextToSpeech)
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
@@ -74,51 +90,41 @@ fun DetalleExamenScreen(
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DarkTeal)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.size(36.dp)
-                    ) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Detalle Del Examen",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = DarkTeal
+                        )
+                        Text(
+                            text = "Ocularis Oftalmología",
+                            fontSize = 12.sp,
+                            color = GrayText
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = DarkTeal
                         )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Detalle Del Examen",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold
+                },
+                actions = {
+                    Image(
+                        painter = painterResource(id = R.drawable.isotipo),
+                        contentDescription = "Isotipo",
+                        modifier = Modifier.size(36.dp)
                     )
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(id = R.drawable.isotipo),
-                            contentDescription = "Isotipo",
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
+                    Spacer(modifier = Modifier.width(16.dp))
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
         },
         containerColor = LightCyanBg
     ) { innerPadding ->
@@ -148,150 +154,367 @@ fun DetalleExamenScreen(
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Compartir Examen Clínico Ocularis"))
                     },
-                    onPrint = {
-                        val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
-                        if (printManager != null) {
-                            Toast.makeText(context, "Conectando con servicio de impresión nativo de Android...", Toast.LENGTH_SHORT).show()
+                    onTtsSpeak = {
+                        val textoLectura = "Informe clínico del examen $tituloExamen para el paciente $pacienteNom, RUT $pacienteRutStr. Estado: $estadoExamen. Hallazgos: $observacionExamen"
+                        tts?.speak(textoLectura, TextToSpeech.QUEUE_FLUSH, null, null)
+                        Toast.makeText(context, "Leyendo informe en voz alta...", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            // Tarjeta de Datos Principales del Examen
+            item {
+                ExamenHeaderCard(
+                    titulo = tituloExamen,
+                    fecha = fechaExamen,
+                    estado = estadoExamen,
+                    ojo = ojoEval
+                )
+            }
+
+            // Información del Paciente Asociado
+            item {
+                PacienteAsociadoCard(
+                    nombre = pacienteNom,
+                    rut = pacienteRutStr
+                )
+            }
+
+            // Documento Oficial Asociado (PDF Real + PdfRenderer)
+            item {
+                DocumentoAsociadoCard(
+                    onVisualizar = {
+                        if (archivoPdfGenerado != null && archivoPdfGenerado!!.exists()) {
+                            mostrarVisorPdfRenderer = true
                         } else {
-                            Toast.makeText(context, "Impresión nativa no disponible en este dispositivo", Toast.LENGTH_SHORT).show()
+                            val file = generarYGuardarPdf(context, expedienteId, tituloExamen, pacienteNom, pacienteRutStr, fechaExamen, observacionExamen)
+                            archivoPdfGenerado = file
+                            if (file != null) {
+                                mostrarVisorPdfRenderer = true
+                            } else {
+                                Toast.makeText(context, "Error al generar el documento PDF", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    onDescargar = {
+                        val file = archivoPdfGenerado ?: generarYGuardarPdf(context, expedienteId, tituloExamen, pacienteNom, pacienteRutStr, fechaExamen, observacionExamen)
+                        if (file != null && file.exists()) {
+                            Toast.makeText(context, "PDF guardado en Descargas: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "Error al descargar el PDF", Toast.LENGTH_SHORT).show()
                         }
                     }
                 )
             }
 
-            // Banner Herramientas de Visión y Asistencia Sonora (Accesibilidad / TextToSpeech Nativo)
-            item {
-                HerramientasAccesibilidadCard(
-                    onAudio = {
-                        val textoInforme = "Detalle del examen $tituloExamen. Paciente $pacienteNom. Estado: $estadoExamen. Resumen de resultados: $observacionExamen"
-                        tts?.speak(textoInforme, TextToSpeech.QUEUE_FLUSH, null, null)
-                        Toast.makeText(context, "Reproduciendo informe en voz alta...", Toast.LENGTH_SHORT).show()
-                    },
-                    onFontMore = {
-                        Toast.makeText(context, "Tamaño de letra aumentado (+A)", Toast.LENGTH_SHORT).show()
-                    },
-                    onContrast = {
-                        Toast.makeText(context, "Modo de alto contraste activado", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
-
-            // Tarjeta Principal del Examen Clínico
-            item {
-                ExamenPrincipalCard(examen = examen)
-            }
-
-            // Sección Documento Oficial Asociado (PDF)
-            item {
-                DocumentoAsociadoCard(
-                    onVisualizar = { mostrarModalVisor = true },
-                    onDescargar = {
-                        Toast.makeText(context, "Descargando archivo cifrado Informe_${expedienteId}.pdf...", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
-
-            // Acciones Complementarias (Notificar, Segunda Opinión)
+            // Acciones Complementarias
             item {
                 AccionesComplementariasSection(
                     onNotificar = {
-                        Toast.makeText(context, "Notificación enviada por SMS y Correo Electrónico", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Notificación enviada al paciente por correo y SMS.", Toast.LENGTH_SHORT).show()
                     },
                     onSegundaOpinion = {
-                        Toast.makeText(context, "Solicitud de interconsulta remitida al panel de especialistas", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Expediente derivado al comité de retina y glaucoma.", Toast.LENGTH_SHORT).show()
                     }
                 )
             }
 
-            // Aviso Legal y Cumplimiento de Pacientes
+            // Aviso Legal y Cumplimiento Normativo
             item {
                 AvisoCumplimientoLegal()
+                Spacer(modifier = Modifier.height(20.dp))
             }
-
-            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 
-    // Modal Visor Seguro Ocularis
     if (mostrarModalVisor) {
         VisorDocumentoModal(
             onDismiss = { mostrarModalVisor = false },
             onImprimir = {
                 mostrarModalVisor = false
-                Toast.makeText(context, "Documento enviado a impresión", Toast.LENGTH_SHORT).show()
+                val file = archivoPdfGenerado ?: generarYGuardarPdf(context, expedienteId, tituloExamen, pacienteNom, pacienteRutStr, fechaExamen, observacionExamen)
+                if (file != null) {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, android.net.Uri.fromFile(file))
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "Compartir o Imprimir PDF"))
+                } else {
+                    Toast.makeText(context, "Error al preparar documento", Toast.LENGTH_SHORT).show()
+                }
             },
             onGuardarPdf = {
                 mostrarModalVisor = false
-                Toast.makeText(context, "Descarga iniciada con éxito", Toast.LENGTH_SHORT).show()
+                val file = archivoPdfGenerado ?: generarYGuardarPdf(context, expedienteId, tituloExamen, pacienteNom, pacienteRutStr, fechaExamen, observacionExamen)
+                if (file != null) {
+                    Toast.makeText(context, "PDF guardado correctamente en: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(context, "Error al generar el archivo", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+    }
+
+    if (mostrarVisorPdfRenderer && archivoPdfGenerado != null) {
+        PdfRendererDialog(
+            file = archivoPdfGenerado!!,
+            onDismiss = { mostrarVisorPdfRenderer = false },
+            onGuardar = {
+                Toast.makeText(context, "Documento guardado y disponible", Toast.LENGTH_SHORT).show()
+                mostrarVisorPdfRenderer = false
             }
         )
     }
 }
 
+// Función auxiliar para generar un PDF real usando PdfDocument
+fun generarYGuardarPdf(
+    context: Context,
+    expedienteId: String,
+    titulo: String,
+    paciente: String,
+    rut: String,
+    fecha: String,
+    obs: String
+): File? {
+    try {
+        val pdfDocument = PdfDocument()
+        val paint = android.graphics.Paint().apply {
+            textSize = 14f
+            color = android.graphics.Color.BLACK
+        }
+        val titlePaint = android.graphics.Paint().apply {
+            textSize = 20f
+            isFakeBoldText = true
+            color = android.graphics.Color.parseColor("#147376")
+        }
+        val subtitlePaint = android.graphics.Paint().apply {
+            textSize = 12f
+            color = android.graphics.Color.parseColor("#527173")
+        }
+
+        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+        val page = pdfDocument.startPage(pageInfo)
+        val canvas = page.canvas
+
+        canvas.drawText("OCULARIS - OFTALMOLOGÍA CLÍNICA", 40f, 50f, titlePaint)
+        canvas.drawText("Informe Médico Oficial - Expediente #$expedienteId", 40f, 80f, subtitlePaint)
+        
+        canvas.drawLine(40f, 95f, 555f, 95f, android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#147376"); strokeWidth = 2f })
+
+        canvas.drawText("Paciente: $paciente", 40f, 130f, paint)
+        canvas.drawText("RUT: $rut", 40f, 160f, paint)
+        canvas.drawText("Examen: $titulo", 40f, 190f, paint)
+        canvas.drawText("Fecha: $fecha", 40f, 220f, paint)
+        canvas.drawText("Estado: Validado • Dr. Roberto Silva M.", 40f, 250f, paint)
+
+        canvas.drawLine(40f, 270f, 555f, 270f, android.graphics.Paint().apply { color = android.graphics.Color.LTGRAY; strokeWidth = 1f })
+
+        canvas.drawText("Resumen de Resultados y Hallazgos:", 40f, 310f, titlePaint)
+        
+        val yStart = 340f
+        var currentY = yStart
+        val words = obs.split(" ")
+        var line = ""
+        for (word in words) {
+            val testLine = if (line.isEmpty()) word else "$line $word"
+            if (paint.measureText(testLine) > 500f) {
+                canvas.drawText(line, 40f, currentY, paint)
+                line = word
+                currentY += 22f
+            } else {
+                line = testLine
+            }
+        }
+        if (line.isNotEmpty()) {
+            canvas.drawText(line, 40f, currentY, paint)
+        }
+
+        canvas.drawText("Firma Electrónica Avanzada - Dr. Roberto Silva M.", 40f, 750f, subtitlePaint)
+        canvas.drawText("Documento válido según Ley de Deberes y Derechos del Paciente.", 40f, 780f, subtitlePaint)
+
+        pdfDocument.finishPage(page)
+
+        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "Informe_${expedienteId}.pdf")
+        pdfDocument.writeTo(FileOutputStream(file))
+        pdfDocument.close()
+        return file
+    } catch (e: Exception) {
+        e.printStackTrace()
+        return null
+    }
+}
+
+// Diálogo Visor utilizando nativamente PdfRenderer
+@Composable
+fun PdfRendererDialog(
+    file: File,
+    onDismiss: () -> Unit,
+    onGuardar: () -> Unit
+) {
+    var bitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+
+    DisposableEffect(file) {
+        try {
+            val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            val renderer = PdfRenderer(fileDescriptor)
+            val list = mutableListOf<Bitmap>()
+            for (i in 0 until renderer.pageCount) {
+                val page = renderer.openPage(i)
+                val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                list.add(bitmap)
+                page.close()
+            }
+            renderer.close()
+            bitmaps = list
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        onDispose {}
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = onGuardar,
+                colors = ButtonDefaults.buttonColors(containerColor = DarkTeal)
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Aceptar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar", color = GrayText)
+            }
+        },
+        title = {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Visor PDF (PdfRenderer)", fontWeight = FontWeight.Bold, color = DarkTeal, fontSize = 16.sp)
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = null, tint = DarkText)
+                }
+            }
+        },
+        text = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(350.dp)
+                    .background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .padding(8.dp)
+            ) {
+                if (bitmaps.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = DarkTeal)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        items(bitmaps.size) { index ->
+                            Image(
+                                bitmap = bitmaps[index].asImageBitmap(),
+                                contentDescription = "Página ${index + 1}",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentHeight()
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        shape = RoundedCornerShape(20.dp),
+        containerColor = Color.White
+    )
+}
+
 @Composable
 fun RegistroClinicoSubBar(
-    examenId: String = "OC-8921",
+    examenId: String,
     onShare: () -> Unit,
-    onPrint: () -> Unit
+    onTtsSpeak: () -> Unit
 ) {
-    val expedienteTexto = if (examenId.startsWith("#")) examenId else "#$examenId"
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = Color.White,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    shape = CircleShape,
+                    shape = RoundedCornerShape(8.dp),
                     color = LightCyan,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Default.Visibility,
+                            imageVector = Icons.Default.Verified,
                             contentDescription = null,
                             tint = DarkTeal,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "REGISTRO CLÍNICO",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "Expediente Oficial",
+                        fontSize = 11.sp,
                         color = SubtitleText
                     )
                     Text(
-                        text = "Expediente $expedienteTexto",
-                        fontSize = 13.sp,
+                        text = "#$examenId",
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = DarkText
                     )
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Botón de Síntesis de Voz (TextToSpeech)
+                IconButton(
+                    onClick = onTtsSpeak,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(LightCyan)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                        contentDescription = "Lectura por voz",
+                        tint = DarkTeal,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Botón Compartir
+                IconButton(
+                    onClick = onShare,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(LightCyan)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Share,
-                        contentDescription = "Compartir",
+                        contentDescription = "Compartir Expediente",
                         tint = DarkTeal,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                IconButton(onClick = onPrint, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.Print,
-                        contentDescription = "Imprimir",
-                        tint = DarkTeal,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -300,483 +523,166 @@ fun RegistroClinicoSubBar(
 }
 
 @Composable
-fun HerramientasAccesibilidadCard(
-    onAudio: () -> Unit,
-    onFontMore: () -> Unit,
-    onContrast: () -> Unit
+fun ExamenHeaderCard(
+    titulo: String,
+    fecha: String,
+    estado: String,
+    ojo: String
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AccessibilityNew,
-                    contentDescription = null,
-                    tint = DarkTeal,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Herramientas de Visión y Asistencia Sonora",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkTeal
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Button(
-                onClick = onAudio,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = DarkTeal,
-                    contentColor = Color.White
-                ),
-                contentPadding = PaddingValues(vertical = 10.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.VolumeUp,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Escuchar Informe Completo 🔊",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onFontMore,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTeal),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkTeal.copy(alpha = 0.3f)),
-                    contentPadding = PaddingValues(vertical = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.TextFields,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Aumentar Letra (+A)",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onContrast,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkTeal),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkTeal.copy(alpha = 0.3f)),
-                    contentPadding = PaddingValues(vertical = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Contrast,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Modo Contraste",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ExamenPrincipalCard(examen: com.duoc.ocularis.data.entity.ExamenEntity?) {
-    val tituloExamen = examen?.tipoExamen ?: "Examen Oftalmológico"
-    val fechaExamen = examen?.fecha ?: "Fecha no disponible"
-    val estadoExamen = examen?.estado?.uppercase() ?: "VALIDADO Y DISPONIBLE"
-    val pacienteNom = examen?.pacienteNombre ?: "Paciente Ocularis"
-    val pacienteRutStr = examen?.pacienteRut ?: "15.782.110-K"
-    val ojoEval = examen?.ojoEvaluado ?: "Bilateral (OD e OI)"
-    val observacionExamen = examen?.observacion.takeIf { !it.isNullOrBlank() } ?: "Sin observaciones clínicas registradas para este estudio."
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Encabezado Nombre Examen + Código RF09
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = tituloExamen,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkTeal,
-                    modifier = Modifier.weight(1f)
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = LightCyan
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "RF09",
-                        fontSize = 11.sp,
+                        text = titulo,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = DarkTeal,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        color = DarkText
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = SubtitleText,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = fechaExamen,
-                    fontSize = 12.sp,
-                    color = SubtitleText
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = SubtitleText,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Text(
-                    text = "Sede Central Norte",
-                    fontSize = 12.sp,
-                    color = SubtitleText
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Estado del informe (VALIDADO Y DISPONIBLE)
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = GreenActiveBg,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = GreenActive,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Verified,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column {
-                        Text(
-                            text = "ESTADO DEL INFORME",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GreenActive
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = SubtitleText,
+                            modifier = Modifier.size(13.dp)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = estadoExamen,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = DarkTeal
-                        )
-                        Text(
-                            text = "Aprobado y sellado electrónicamente con validez médica",
-                            fontSize = 11.sp,
+                            text = fecha,
+                            fontSize = 12.sp,
                             color = SubtitleText
                         )
                     }
                 }
+
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = GreenActiveBg
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(GreenActive)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = estado,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GreenActive
+                        )
+                    }
+                }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = LightCyan)
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Imagen / Preview del escáner clínico OCT
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkTeal)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.isotipo),
-                    contentDescription = "Vista preliminar OCT",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentScale = ContentScale.Fit
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            androidx.compose.ui.graphics.Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                startY = 80f
-                            )
-                        )
-                )
-
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Analytics,
+                        imageVector = Icons.Default.Visibility,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = DarkTeal,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Corte Tomográfico B-Scan HD • Macula OD/OI",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
+                        text = "Ojo Evaluado",
+                        fontSize = 12.sp,
+                        color = SubtitleText
                     )
                 }
+                Text(
+                    text = ojo,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkText
+                )
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(14.dp))
+@Composable
+fun PacienteAsociadoCard(
+    nombre: String,
+    rut: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "PACIENTE ASOCIADO",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = SubtitleText
+            )
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Grilla de Metadatos Clínicos
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = SoftCardBg,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                Surface(
+                    shape = CircleShape,
+                    color = LightCyan,
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    // Fila 1: Paciente
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = DarkTeal,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Paciente",
-                                fontSize = 12.sp,
-                                color = SubtitleText
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = pacienteNom,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = DarkText
-                            )
-                            Text(
-                                text = pacienteRutStr,
-                                fontSize = 11.sp,
-                                color = SubtitleText
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = LightCyan)
-
-                    // Fila 2: Ojo Evaluado
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Visibility,
-                                contentDescription = null,
-                                tint = DarkTeal,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Ojo Evaluado",
-                                fontSize = 12.sp,
-                                color = SubtitleText
-                            )
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = LightCyan
-                        ) {
-                            Text(
-                                text = ojoEval,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = DarkTeal,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = LightCyan)
-
-                    // Fila 3: Tecnólogo Resp.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Badge,
-                                contentDescription = null,
-                                tint = DarkTeal,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Tecnólogo Resp.",
-                                fontSize = 12.sp,
-                                color = SubtitleText
-                            )
-                        }
+                    Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "T.M. Andrés Castillo V.",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = DarkText
+                            text = nombre.split(" ").let { parts ->
+                                if (parts.size >= 2) "${parts[0].take(1)}${parts[1].take(1)}" else nombre.take(2)
+                            }.uppercase(),
+                            color = DarkTeal,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
+                }
 
-                    HorizontalDivider(color = LightCyan)
+                Spacer(modifier = Modifier.width(14.dp))
 
-                    // Fila 4: Médico Validador
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.MedicalServices,
-                                contentDescription = null,
-                                tint = DarkTeal,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Médico Validador",
-                                fontSize = 12.sp,
-                                color = SubtitleText
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Dr. Roberto Silva M.",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = DarkText
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.VerifiedUser,
-                                contentDescription = "Firma validada",
-                                tint = DarkTeal,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = nombre,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkText
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row {
+                        Text(
+                            text = "RUT: $rut",
+                            fontSize = 12.sp,
+                            color = SubtitleText
+                        )
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Resumen de Resultados y Hallazgos
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Notes,
-                    contentDescription = null,
-                    tint = DarkTeal,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Resumen de Resultados y Hallazgos",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkTeal
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = SoftCardBg,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = observacionExamen,
-                    fontSize = 13.sp,
-                    color = DarkText,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(14.dp)
-                )
             }
         }
     }
@@ -859,7 +765,7 @@ fun DocumentoAsociadoCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Informe_OCT_OC-8921.pdf",
+                            text = "Informe_Clinico_Ocularis.pdf",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = DarkText,
@@ -1153,7 +1059,7 @@ fun VisorDocumentoModal(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.isotipo),
-                        contentDescription = "Previsualización PDF",
+                        contentDescription = "Previsualización PDF real con PdfRenderer",
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(24.dp),
@@ -1164,13 +1070,13 @@ fun VisorDocumentoModal(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "Informe_OCT_OC-8921.pdf",
+                    text = "Informe_Clinico_Ocularis.pdf",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = DarkTeal
                 )
                 Text(
-                    text = "Páginas 1 de 2 • Firma del Dr. Silva activa",
+                    text = "Generado dinámicamente y firmado digitalmente",
                     fontSize = 11.sp,
                     color = SubtitleText
                 )
