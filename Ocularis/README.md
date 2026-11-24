@@ -1,130 +1,100 @@
-# 👁️ Ocularis - Sistema Oftalmológico Móvil
+# Ocularis
+**App móvil para consulta y trazabilidad de exámenes oftalmológicos**
 
-**Ocularis** es una aplicación móvil nativa desarrollada en **Kotlin** con **Jetpack Compose**, **Material 3** y arquitectura **MVVM**, orientada a la gestión clínica oftalmológica avanzada en tiempo real para centros de salud, especialistas médicos y pacientes, cumpliendo rigurosamente con los estándares de accesibilidad visual y normativas clínicas.
-
----
-
-## 🌟 Características Principales y Arquitectura
-
-1. **Gestión Clínica Completa (MVVM & Room / InsForge API):**
-   - Autenticación multirrol segura: Administrador, Especialista (Médico Oftalmólogo) y Paciente.
-   - Directorio de pacientes en tiempo real con alertas clínicas (Glaucoma, Miopía, Retinopatía, Cataratas).
-   - Registro de nuevas atenciones clínicas, recetas oftalmológicas e historial médico completo.
-   - Visualización detallada de exámenes de diagnóstico (OCT Macular, Campimetría, Tonometría, Fondo de Ojo) con apoyo multimedia e informes narrados.
-
-2. **Accesibilidad Visual Avanzada (WCAG 2.2 AA & Jetpack DataStore):**
-   - **Persistencia con DataStore:** Guardado reactivo de preferencias accesibles (`AccessibilityPreferencesManager`).
-   - **Alto Contraste Clínico:** Tema de alto contraste optimizado para lectura rápida.
-   - **Escala Dinámica de Texto:** Ajuste de tamaño de fuente a nivel global (Normal 1.0x, Grande 1.25x, Extra Grande 1.5x).
-   - **Lector de Voz (TextToSpeech):** Lectura en voz alta automatizada para informes de exámenes médicos.
-
-3. **Backend Cloud InsForge & Persistencia Offline:**
-   - Integración con API REST de **InsForge Cloud Auth & Microservices**.
-   - Respaldo reactivo en base de datos local con Room (`OcularisDatabase`).
-   - **Indicador sutil de Sincronización:** Chip visual de estado en tiempo real (Sincronizado, Sincronizando..., Modo Offline).
-
-4. **Suite de Pruebas Unitarias e Instrumentadas:**
-   - Pruebas unitarias con **JUnit 4**, **MockK** y `kotlinx-coroutines-test` para la lógica de negocio de `AppViewModel`.
-   - Pruebas de IU con **Compose UI Test** (`createComposeRule`) para validación de renderizado e interacción.
+Ocularis es una aplicación móvil desarrollada en Android (Jetpack Compose) orientada a centralizar, organizar y dar trazabilidad al acceso, gestión y consulta de exámenes e historiales clínicos oftalmológicos para especialistas y profesionales de la salud.
 
 ---
 
-## 👥 Flujos de Usuarios (User Flows)
+## 🎨 Identidad Visual
+* **Logotipo:** 
+<div align="center">
+  <img src="docs/diseno/logo.png" alt="Logo Ocularis" width="250">
+</div>
 
-El sistema opera bajo tres perfiles diferenciados según el rol autenticado:
+* **Paleta de Colores Oficial:** 
 
-### 1. 🛡️ Administrador del Sistema
-- **Gestión de Cuentas:** Permite dar de alta nuevos usuarios (Especialistas y Pacientes) integrados con el servidor de autenticación y base de datos.
-- **Panel de Control (Dashboard):** Visualización de métricas operativas del centro oftalmológico (total de atenciones, tasa de exámenes diarios, estado de interoperabilidad HL7/DICOM y sincronización de base de datos).
-- **Control de Accesos:** Auditoría y eliminación de registros de usuarios en el sistema.
-
-### 2. 🩺 Especialista / Médico Oftalmólogo
-- **Agenda Diaria:** Visualización de pacientes agendados, filtrado por estado de atención (*Agenda Pendiente* vs *Al Día*) y acceso directo a fichas médicas.
-- **Nueva Atención (Ingreso Clínico):** Formulario validado con selector de pacientes desde la base de datos (buscador autocomplete), selector de fecha (calendario nativo), sucursal, médico a cargo y motivo de consulta con chips rápidos.
-- **Detalle de Examen y Visor PDF:** 
-  - Generación automática de informes en PDF mediante `PdfDocument` con los datos reales del paciente y hallazgos clínicos.
-  - Visualización nativa de las páginas del documento dentro de la app utilizando **`PdfRenderer`** (renderizado en bitmaps).
-  - Opción de descarga local al almacenamiento del dispositivo y lectura por voz (*TextToSpeech*) del expediente.
-
-### 3. 👤 Paciente
-- **Portal Personal:** Bienvenida personalizada con resumen de su estado de salud visual y previsión (ej. Fonasa B, Isapre Banmédica).
-- **Mis Exámenes:** Consulta de su historial de estudios oftalmológicos (OCT, Tonometría, Campimetría) con detalle de ojo evaluado (OD/OI) y estado de validación médica.
-- **Configuración de Accesibilidad:** Personalización en tiempo real del tamaño de fuente y activación del alto contraste clínico persistido mediante DataStore.
+| Color | Código | Vista Previa |
+| :--- | :--- | :--- |
+| **Fondo** | `#FFFFFA` | <img src="https://placehold.co/50x50/FFFFFA/FFFFFA.png" width="20" height="20"> |
+| **Texto** | `#0D5C63` | <img src="https://placehold.co/50x50/0D5C63/0D5C63.png" width="20" height="20"> |
+| **Secundario** | `#44A1A0` | <img src="https://placehold.co/50x50/44A1A0/44A1A0.png" width="20" height="20"> |
+| **Adicional** | `#78CDD7` | <img src="https://placehold.co/50x50/78CDD7/78CDD7.png" width="20" height="20"> |
+| **Principal** | `#247B7B` | <img src="https://placehold.co/50x50/247B7B/247B7B.png" width="20" height="20"> |
 
 ---
 
-## 🛠️ Tecnologías y Librerías
-
-- **Lenguaje:** Kotlin 2.0+
-- **UI:** Jetpack Compose, Material 3, Material Icons Extended
-- **Arquitectura:** MVVM (Model-View-ViewModel) + Clean Data Layer
-- **Persistencia Local:** Room Database + Jetpack DataStore Preferences
-- **Red:** Retrofit 2 + Gson + OkHttp3 Logging Interceptor
-- **Generación y Visor PDF:** `android.graphics.pdf.PdfDocument` + `android.graphics.pdf.PdfRenderer`
-- **Accesibilidad / Voz:** `TextToSpeech` API
-- **Pruebas:** JUnit 4, MockK, Coroutines Test, Compose UI Test JUnit4
+## 🏛️ Arquitectura y Base de Datos (3NF)
+El proyecto implementa el patrón **MVVM (Model-View-ViewModel)** junto con **Room Database (SQLite)** normalizada en **Tercera Forma Normal (3NF)** para garantizar la persistencia local permanente:
+* **Entidades (`Entities`):** `UsuarioEntity`, `PacienteEntity`, `EspecialistaEntity`, `AlertaClinicaEntity`, `ConsultaMedicaEntity`, `ExamenEntity`.
+* **Acceso a Datos (`DAOs`):** Consultas reactivas basadas en **Kotlin Coroutines** y `Flow`.
+* **Repositorio (`Repository`):** Capa única de verdad que alimenta al `AppViewModel`.
+* **Poblador Inicial (`Seeder`):** Carga automática de registros clínicos de prueba al iniciar la aplicación.
 
 ---
 
-## 📂 Estructura del Proyecto
+## 📱 Pantallas Principales implementadas (MVP)
+Todas las interfaces están construidas con **Jetpack Compose** y **Material 3**:
+1. **Login (`LoginScreen.kt`):** Acceso seguro con validación dinámica acumulativa de contraseña (mínimo 8 caracteres, mayúsculas, minúsculas, números y caracteres especiales).
+2. **Inicio / Pacientes (`HomeScreen.kt`):** Listado dinámico de pacientes recientes desde Room, barra de búsqueda y filtros rápidos.
+3. **Nueva Atención (`AtencionScreen.kt`):** Formulario clínico para el registro de prestaciones médicas con selector de fecha nativo.
+4. **Historial de Atenciones (`HistorialScreen.kt`):** Consulta global de exploraciones y exámenes sincronizados.
+5. **Detalle del Paciente (`DetallePacienteScreen.kt`):** Expediente completo, datos de contacto, alertas oftalmológicas (miopía, glaucoma), próximo control e historial de consultas.
+6. **Lista de Exámenes (`ListaExamenes.kt`):** Pantalla 5.5 intermedia para la consulta y filtrado de exámenes sincronizados desde PACS.
+7. **Detalle del Examen (`DetalleExamen.kt`):** Visualizador de informes clínicos, hallazgos y acceso a documentos PDF firmados digitalmente.
+8. **Perfil del Especialista (`PerfilScreen.kt`):** Panel del médico con estado de disponibilidad interactivo, estadísticas mensuales, credenciales y preferencias de consulta.
 
-```
-app/src/
-├── main/java/com/duoc/ocularis/
-│   ├── data/
-│   │   ├── AccessibilityPreferencesManager.kt   # Gestor DataStore de Accesibilidad
-│   │   ├── OcularisDatabase.kt                  # Base de datos Room
-│   │   ├── OcularisRepository.kt                # Repositorio de datos unificado
-│   │   ├── dao/                                # DAOs de Room
-│   │   ├── entity/                             # Entidades Room
-│   │   └── remote/                             # Cliente Retrofit & DTOs InsForge API
-│   ├── model/                                  # Modelos del dominio y Roles
-│   ├── navigation/                             # Configuración de NavHost y Screens
-│   ├── ui/
-│   │   ├── components/                         # Componentes reutilizables (SyncIndicator, etc.)
-│   │   ├── screens/                            # Pantallas (Login, Home, Perfil, Exámenes, etc.)
-│   │   └── theme/                              # Colores, Tipografía y OcularisTheme con DataStore
-│   └── viewmodel/
-│       └── AppViewModel.kt                     # ViewModel principal con StateFlows
-└── test/java/com/duoc/ocularis/
-    ├── MainDispatcherRule.kt                   # Regla JUnit para Coroutines
-    └── viewmodel/AppViewModelTest.kt           # Pruebas unitarias con JUnit & MockK
+---
+
+## ⚡ Recursos Nativos de Android Integrados
+* **Biometría Nativa (`BiometricPrompt`):** Autenticación por huella dactilar o reconocimiento facial en el Login.
+* **Telefonía y Mensajería (`Intent.ACTION_DIAL` / `smsto:`):** Llamadas y envío de SMS directos a los pacientes desde su perfil.
+* **Compartir del Sistema (`Android ShareSheet`):** Envío de informes clínicos a otras aplicaciones mediante `Intent.ACTION_SEND`.
+* **Impresión Nativa (`PrintManager`):** Conexión con el servicio de impresión del dispositivo.
+* **Síntesis de Voz (`TextToSpeech`):** Lectura en voz alta en español del informe médico completo ("Escuchar Informe Completo 🔊").
+* **Fecha y Hora (`DatePickerDialog`):** Selector de calendario nativo para agendamientos.
+
+---
+
+## 📊 Flujo de Usuario
+```mermaid
+stateDiagram-v2
+    direction TB
+    [*] --> Login: Iniciar App
+    
+    Login --> ValidarCredenciales: Ingresar datos / Biometría
+    ValidarCredenciales --> Login: Credenciales incorrectas
+    ValidarCredenciales --> Inicio: Acceso autorizado
+    
+    Inicio --> DetallePaciente: Seleccionar paciente
+    DetallePaciente --> ListaExamenes: Ver lista completa de exámenes
+    ListaExamenes --> DetalleExamen: Seleccionar examen específico
+    
+    Inicio --> NuevaAtencion: Registrar Nueva Atención
+    NuevaAtencion --> Inicio: Guardar en Base de Datos Room
+    
+    Inicio --> Historial: Pestaña Historial
+    Inicio --> Perfil: Pestaña Perfil del Especialista
+    
+    Perfil --> Login: Cerrar Sesión Segura
+    Inicio --> [*]: Salir
 ```
 
----
+## Pantallas Principales
+Los diseños de las interfaces de Ocularis se encuentran ubicados en el repositorio dentro del directorio `docs/diseno/interfaces/`. Las pantallas generadas para este MVP son:
+* Login
+* Inicio / Búsqueda
+* Registro de Atención
+* Historial de Exámenes
+* Registro de Examen (Subir Archivos)
+* Resumen / Detalle
 
-## 🌐 Endpoints Backend InsForge
+## Tecnologías Utilizadas
+* **Google Stitch:** Generación y prototipado de UI con IA.
+* **coolors.co:** Definición de la paleta de colores.
+* **planttext.com:** Generación del diagrama de flujo UML.
+* **Material Design 3 (m3.material.io):** Sistema de diseño y componentes base.
 
-- **Autenticación (Login):** `POST /auth/v1/token?grant_type=password`
-- **Registro (Register):** `POST /auth/v1/signup`
-- **Gestión de Pacientes y Consultas:** API Rest sincronizada con PostgREST tables.
-
----
-
-## 🧪 Ejecución de Pruebas
-
-Para ejecutar la suite de pruebas unitarias desde la terminal o Gradle wrapper:
-
-```bash
-./gradlew app:testDebugUnitTest
-```
-
----
-
-## 📦 Generación de APK Release Firmada
-
-Para construir el binario firmado para distribución en modo release:
-
-```bash
-./gradlew app:assembleRelease
-```
-
-El archivo APK generado se ubicará en:
-`app/build/outputs/apk/release/app-release.apk`
-
----
-
-## 👨‍💻 Integrantes del Equipo de Desarrollo
-
-- **Desarrollador Principal / Arquitectura MVVM & UI:** Tzequiel y equipo de desarrollo Ocularis Health Tech.
-- **Evaluación Final Transversal (EFT) · Duoc UC**
+## Integrantes
+**Equipo Bizcochitos**
+* **Richard Hernández:** Líder
+* **Cesar Molina:** Frontend
