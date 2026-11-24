@@ -52,7 +52,7 @@ fun ListaExamenesScreen(
                 fecha = ex.fecha,
                 hora = "",
                 ojoEvaluado = ex.ojoEvaluado,
-                tecnologiaPill = "Room DB",
+                tecnologiaPill = "Sincronizado",
                 icono = Icons.Default.Science,
                 archivos = listOf(
                     ArchivoDisponible("PDF Clínico (3.8 MB)", Icons.Default.PictureAsPdf),
@@ -207,7 +207,7 @@ fun PacienteInfoBanner(pacienteId: String) {
                     color = DarkText
                 )
                 Text(
-                    text = "Mostrando registros sincronizados en Room DB",
+                    text = "Mostrando registros clínicos sincronizados",
                     fontSize = 12.sp,
                     color = SubtitleText
                 )

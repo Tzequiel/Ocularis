@@ -269,7 +269,7 @@ fun GestionUsuariosScreen(
             onDismissRequest = { if (!isCreatingUser) mostrarDialogoAgregar = false },
             title = {
                 Text(
-                    text = "Añadir Nuevo Usuario (InsForge)",
+                    text = "Añadir Nuevo Usuario",
                     fontWeight = FontWeight.Bold,
                     color = DarkTeal
                 )
@@ -286,7 +286,7 @@ fun GestionUsuariosScreen(
                     OutlinedTextField(
                         value = nuevoCorreo,
                         onValueChange = { nuevoCorreo = it },
-                        label = { Text("Correo Electrónico InsForge") },
+                        label = { Text("Correo Electrónico") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )

@@ -679,7 +679,7 @@ fun PreferenciasConsultaCard(
             // Toggle 3
             PreferenciasToggleRow(
                 icono = Icons.Default.Contrast,
-                titulo = "Alto Contraste Clínico (DataStore)",
+                titulo = "Alto Contraste Clínico",
                 subtitulo = "Modo de contraste mejorado para lecturas diagnósticas",
                 checked = contrasteClinico,
                 onCheckedChange = onContrasteChange
@@ -703,7 +703,7 @@ fun PreferenciasConsultaCard(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Tamaño de Letra (DataStore)",
+                            text = "Tamaño de Letra",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = DarkText

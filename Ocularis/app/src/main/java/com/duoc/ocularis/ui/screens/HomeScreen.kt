@@ -299,7 +299,7 @@ fun StatsCard() {
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text("Tasa de Exámenes Hoy", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
-                    Text("Base de Datos Room Sincronizada", fontSize = 12.sp, color = GrayText)
+                    Text("Base de Datos Sincronizada", fontSize = 12.sp, color = GrayText)
                 }
             }
             Surface(shape = CircleShape, color = Color.Transparent, border = BorderStroke(4.dp, DarkTeal), modifier = Modifier.size(48.dp)) {
