@@ -224,8 +224,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     apikey = InsForgeClient.API_KEY,
                     request = request
                 )
-                if (response.isSuccessful && response.body() != null) {
-                    val authId = response.body()!!.id
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val authId = body?.id ?: body?.user?.id ?: "US-${System.currentTimeMillis()}"
 
                     // Registrar también en la base de datos local Room con su rol
                     repository.insertUsuario(

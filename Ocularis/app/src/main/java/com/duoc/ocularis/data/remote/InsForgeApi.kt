@@ -31,9 +31,10 @@ data class RegisterRequest(
 )
 
 data class RegisterResponse(
-    @SerializedName("id") val id: String,
-    @SerializedName("email") val email: String,
-    @SerializedName("created_at", alternate = ["createdAt"]) val createdAt: String? = null
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("created_at", alternate = ["createdAt"]) val createdAt: String? = null,
+    @SerializedName("user") val user: UserDto? = null
 )
 
 // DTOs para las tablas de InsForge (PostgREST DB 3FN)
