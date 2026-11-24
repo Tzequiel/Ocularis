@@ -368,7 +368,7 @@ fun ResumenAlertasCard(paciente: PacienteEntity?) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Diagnósticos / Hallazgos Clínicos (Room DB):",
+                text = "Diagnósticos / Hallazgos Clínicos:",
                 fontSize = 12.sp,
                 color = SubtitleText,
                 fontWeight = FontWeight.Medium
@@ -541,7 +541,7 @@ fun HistorialConsultasCard() {
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Registros almacenados permanentemente en Room Database.",
+                text = "Registros almacenados permanentemente en el sistema.",
                 fontSize = 12.sp,
                 color = SubtitleText
             )

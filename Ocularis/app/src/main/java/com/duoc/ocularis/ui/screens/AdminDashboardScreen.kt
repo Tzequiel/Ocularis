@@ -280,7 +280,7 @@ fun AdminDashboardScreen(
                     HorizontalDivider(color = BackgroundColor)
 
                     EstadoItem(etiqueta = "Interoperabilidad HL7 / DICOM", estado = "En línea", ok = true)
-                    EstadoItem(etiqueta = "Base de Datos Ocularis (Room)", estado = "Sincronizada", ok = true)
+                    EstadoItem(etiqueta = "Base de Datos Ocularis", estado = "Sincronizada", ok = true)
                     EstadoItem(etiqueta = "Almacenamiento de Imágenes OCT", estado = "1.4 TB Disponibles", ok = true)
                 }
             }

@@ -393,7 +393,7 @@ fun PdfRendererDialog(
         },
         title = {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Visor PDF (PdfRenderer)", fontWeight = FontWeight.Bold, color = DarkTeal, fontSize = 16.sp)
+                Text("Visor de Documento PDF", fontWeight = FontWeight.Bold, color = DarkTeal, fontSize = 16.sp)
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = null, tint = DarkText)
                 }

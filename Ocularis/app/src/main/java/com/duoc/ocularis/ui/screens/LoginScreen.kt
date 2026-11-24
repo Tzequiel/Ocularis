@@ -102,7 +102,7 @@ fun LoginScreen(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "ACCESO SEGURO - INSFORGE AUTH",
+                        text = "ACCESO SEGURO - CLÍNICA OCULARIS",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -168,7 +168,7 @@ fun LoginScreen(
                 },
                 supportingText = {
                     Text(
-                        text = "Correo corporativo registrado en InsForge",
+                        text = "Correo corporativo registrado",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -238,7 +238,7 @@ fun LoginScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 supportingText = {
                     Text(
-                        text = "Autenticación segura con servidor InsForge",
+                        text = "Autenticación cifrada y segura",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                     )
@@ -362,14 +362,14 @@ fun LoginScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Verificando en InsForge...",
+                            text = "Verificando credenciales...",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     } else {
                         Text(
-                            text = "Ingresar al Sistema (InsForge)",
+                            text = "Ingresar al Sistema",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -503,7 +503,7 @@ fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Conexión HL7 / DICOM Optom · InsForge Cloud",
+                    text = "Conexión HL7 / DICOM Optom · Servidor Clínico",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
